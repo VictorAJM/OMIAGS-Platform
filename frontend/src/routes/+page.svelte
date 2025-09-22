@@ -4,9 +4,9 @@
 
   // Temporary mock data – later replace with API fetch
   let courses = [
-    { id: 1, title: "Programación en C++", description: "Aprende los fundamentos del C++ con ejercicios prácticos.", progress: 45 },
-    { id: 2, title: "Algoritmos Avanzados", description: "Estructuras de datos y técnicas de programación competitiva.", progress: 20 },
-    { id: 3, title: "Machine Learning", description: "Introducción al aprendizaje automático con Python.", progress: 70 },
+    { id: 1, title: "Programación en C++", description: "Aprende los fundamentos del C++ con ejercicios prácticos.", progress: 45, continueHref: "/courses/cpp/lesson-1" },
+    { id: 2, title: "Algoritmos Avanzados", description: "Estructuras de datos y técnicas de programación competitiva.", progress: 20, continueHref: "/courses/cpp/lesson-2" },
+    { id: 3, title: "Machine Learning", description: "Introducción al aprendizaje automático con Python.", progress: 70, continueHref: "/courses/cpp/lesson-3" },
   ];
 </script>
 
