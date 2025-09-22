@@ -1,12 +1,9 @@
 export function createNav(viewerType) {
-  const common = [{ label: "Cerrar sesión", href: "#logout" }];
-
   if (viewerType === "student") {
     return [
       { label: "Mis Cursos", href: "#cursos", active: true },
       { label: "Progreso", href: "#progreso" },
-      { label: "Perfil", href: "#perfil" },
-      ...common
+      { label: "Perfil", href: "#perfil" }
     ];
   }
 
@@ -15,11 +12,9 @@ export function createNav(viewerType) {
       { label: "Cursos", href: "#cursos", active: true },
       { label: "Estudiantes", href: "#estudiantes" },
       { label: "Métricas", href: "#metricas" },
-      { label: "Configuración de Perfil", href: "#configuracion" },
-      ...common
+      { label: "Configuración de Perfil", href: "#configuracion" }
     ];
   }
 
-  // fallback
-  return [{ label: "Cerrar sesión", href: "#logout" }];
+  return [];
 }
