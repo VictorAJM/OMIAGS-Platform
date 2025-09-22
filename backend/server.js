@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import courseRoutes from "./routes/courses.js";
 
 dotenv.config();
 const app = express();
@@ -16,22 +17,6 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error(err));
 
-// Example Schema + Model
-const UserSchema = new mongoose.Schema({ name: String, email: String });
-const User = mongoose.model("User", UserSchema);
+app.use("/api/courses", courseRoutes);
 
-// Routes
-app.get("/api/users", async (req, res) => {
-  const users = await User.find();
-  res.json(users);
-});
-
-app.post("/api/users", async (req, res) => {
-  const newUser = new User(req.body);
-  await newUser.save();
-  res.status(201).json(newUser);
-});
-
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(5000, () => console.log("Server running on port 5000"));

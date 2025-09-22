@@ -1,13 +1,24 @@
-<script>
+<script lang="ts">
   import NavBar from "./NavBar.svelte";
   import CourseCard from "./CourseCard.svelte";
+  import { onMount } from "svelte";
 
-  // Temporary mock data – later replace with API fetch
-  let courses = [
-    { id: 1, title: "Programación en C++", description: "Aprende los fundamentos del C++ con ejercicios prácticos.", progress: 45, continueHref: "/courses/cpp/lesson-1" },
-    { id: 2, title: "Algoritmos Avanzados", description: "Estructuras de datos y técnicas de programación competitiva.", progress: 20, continueHref: "/courses/cpp/lesson-2" },
-    { id: 3, title: "Machine Learning", description: "Introducción al aprendizaje automático con Python.", progress: 70, continueHref: "/courses/cpp/lesson-3" },
-  ];
+  interface Course {
+    title: string;
+    description: string;
+    progress: number;
+    // Add other fields if needed
+  }
+
+  let courses: Course[] = [];
+  onMount(async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/courses");
+      courses = await res.json();
+    } catch (err) {
+      console.error("Failed to fetch courses", err);
+    }
+  });
 </script>
 
 <NavBar viewerType="student" username="Chaska" />
