@@ -11,9 +11,10 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error(err));
+  .catch((err) => console.error(err));
 
 // Example Schema + Model
 const UserSchema = new mongoose.Schema({ name: String, email: String });
