@@ -5,22 +5,31 @@
   export let continueHref = "#"; // placeholder, later will link to last lesson
 </script>
 
-<div class="course-card">
-  <div class="card-header">
-    <h3>{title}</h3>
-    <span class="progress-text">{progress}%</span>
+<div class="course-container">
+  <div class="course-card">
+    <div class="card-header">
+      <h3>{title}</h3>
+      <span class="progress-text">{progress}%</span>
+    </div>
+
+    <p class="description">{description}</p>
+
+    <div class="progress-bar">
+      <div class="progress" style="width: {progress}%"></div>
+    </div>
+
+    <a class="continue-btn" href={continueHref}>Continuar →</a>
   </div>
-
-  <p class="description">{description}</p>
-
-  <div class="progress-bar">
-    <div class="progress" style="width: {progress}%"></div>
-  </div>
-
-  <a class="continue-btn" href={continueHref}>Continuar →</a>
 </div>
 
 <style>
+  /* Center container */
+  .course-container {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+  }
+
   .course-card {
     background: #fff;
     border-radius: 12px;
@@ -31,6 +40,8 @@
     flex-direction: column;
     gap: 0.8rem;
     transition: transform 0.15s ease-in-out;
+    max-width: 400px; /* prevent the card from being too wide */
+    width: 100%; /* responsive */
   }
 
   .course-card:hover {
