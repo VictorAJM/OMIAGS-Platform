@@ -3,7 +3,7 @@ export function createNav(viewerType) {
     return [
       { label: "Mis Cursos", href: "#cursos", active: true },
       { label: "Progreso", href: "#progreso" },
-      { label: "Perfil", href: "#perfil" }
+      { label: "Perfil", href: "#perfil" },
     ];
   }
 
@@ -12,7 +12,7 @@ export function createNav(viewerType) {
       { label: "Cursos", href: "#cursos", active: true },
       { label: "Estudiantes", href: "#estudiantes" },
       { label: "Métricas", href: "#metricas" },
-      { label: "Configuración de Perfil", href: "#configuracion" }
+      { label: "Configuración de Perfil", href: "#configuracion" },
     ];
   }
 
