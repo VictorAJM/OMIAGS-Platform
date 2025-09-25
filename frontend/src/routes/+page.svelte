@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
 
   interface Course {
+    id: string;
     title: string;
     description: string;
     progress: number;
@@ -28,6 +29,7 @@
   <div class="course-list">
     {#each courses as course}
       <CourseCard
+        id={course.id}
         title={course.title}
         description={course.description}
         progress={course.progress}
