@@ -1,9 +1,14 @@
 <script>
-  export let id; // course ID
+  import { goto } from '$app/navigation';
+
+  export let id;           // course ID
   export let title;
   export let description;
   export let progress = 0;
-  export let continueHref = "#"; // placeholder, later will link to last lesson
+
+  function goToCourse() {
+    goto(`/courses/${id}`);
+  }
 </script>
 
 <div class="course-container">
@@ -19,7 +24,9 @@
       <div class="progress" style="width: {progress}%"></div>
     </div>
 
-    <a class="continue-btn" href={`/courses/${id}`}>Continuar →</a>
+    <button class="continue-btn" on:click={goToCourse}>
+      Continuar →
+    </button>
   </div>
 </div>
 
@@ -102,6 +109,8 @@
     font-weight: 500;
     font-size: 0.9rem;
     transition: background 0.2s ease-in-out, transform 0.1s;
+    cursor: pointer;
+    border: none;
   }
 
   .continue-btn:hover {
