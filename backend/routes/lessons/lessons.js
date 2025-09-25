@@ -18,4 +18,19 @@ router.get("/:courseId", async (req, res) => {
   }
 });
 
+// POST /api/lessons
+router.post("/", async (req, res) => {
+  try {
+    const { courseId, title, description, content } = req.body;
+    if (!courseId || !title) return res.status(400).json({ message: "courseId and title required" });
+
+    const lesson = new Lesson({ courseId, title, description, content });
+    await lesson.save();
+    res.status(201).json(lesson);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;
