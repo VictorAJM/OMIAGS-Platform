@@ -1,9 +1,13 @@
 <script>
   import { goto } from '$app/navigation';
 
+  /** @type {number|string} */
   export let id;           // course ID
+  /** @type {string} */
   export let title;
+  /** @type {string} */
   export let description;
+  /** @type {number} */
   export let progress = 0;
 
   function goToCourse() {

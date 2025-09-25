@@ -19,36 +19,27 @@
       loading = false;
     }
   });
+
+  function openLesson(lesson) {
+    alert(`Abrir lección: ${lesson.title}`);
+  }
 </script>
 
-<h2 class="text-xl font-bold mb-4">Lecciones</h2>
+<h2>Lecciones del curso</h2>
 
 {#if loading}
   <p>Cargando lecciones...</p>
 {:else if error}
-  <p class="text-red-500">{error}</p>
+  <p style="color:red">{error}</p>
 {:else if lessons.length === 0}
   <p>No hay lecciones disponibles.</p>
 {:else}
-  <ul class="space-y-4">
+  <ul>
     {#each lessons as lesson}
-      <li class="p-4 bg-white rounded shadow">
-        <h3 class="text-lg font-semibold">{lesson.title}</h3>
-        <p class="text-gray-600">{lesson.description}</p>
-        <button
-          class="mt-2 px-3 py-1 bg-blue-500 text-white rounded"
-          on:click={() => openLesson(lesson)}
-        >
-          Abrir
-        </button>
+      <li>
+        <strong>{lesson.title}</strong> — {lesson.description}
+        <button on:click={() => openLesson(lesson)}>Abrir</button>
       </li>
     {/each}
   </ul>
 {/if}
-
-<script>
-  function openLesson(lesson) {
-    // Later: route to /lessons/[id]
-    alert(`Abrir lección: ${lesson.title}`);
-  }
-</script>
