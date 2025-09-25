@@ -33,4 +33,17 @@ router.post("/", async (req, res) => {
   }
 });
 
+// DELETE /api/lessons/:id
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const lesson = await Lesson.findByIdAndDelete(id);
+    if (!lesson) return res.status(404).json({ message: "Lesson not found" });
+    res.json({ message: "Lesson deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;

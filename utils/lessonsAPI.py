@@ -30,6 +30,15 @@ def get_lessons(course_id):
     except requests.exceptions.RequestException as e:
         print("❌ Error fetching lessons:", e)
         
+def delete_lesson(lesson_id):
+    try:
+        res = requests.delete(f"{API_URL}/{lesson_id}")
+        res.raise_for_status()
+        print("✅ Lesson deleted:", res.json())
+        return res.json()
+    except requests.exceptions.RequestException as e:
+        print("❌ Error deleting lesson:", e)
+        
         
 if __name__ == "__main__":
 
