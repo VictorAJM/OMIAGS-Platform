@@ -1,11 +1,10 @@
 import mongoose from "mongoose";
-import lessonSchema from "./Lesson.js";
 
 const courseSchema = new mongoose.Schema({
-  title: String,
+  title: { type: String, required: true },
   description: String,
   accessList: [mongoose.Schema.Types.ObjectId], // IDs of users who can access
-  lessons: [lessonSchema] // embed lessons
+  progress: { type: Number, default: 0 }       // optional
 });
 
 export default mongoose.model("Course", courseSchema);

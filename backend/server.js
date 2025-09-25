@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import courseRoutes from "./routes/courses/courses.js";
+import lessonRoutes from "./routes/lessons/lessons.js";
 
 dotenv.config();
 const app = express();
@@ -18,5 +19,6 @@ mongoose
   .catch((err) => console.error(err));
 
 app.use("/api/courses", courseRoutes);
+app.use("/api/lessons", lessonRoutes);
 
 app.listen(5000, () => console.log("Server running on port 5000"));
