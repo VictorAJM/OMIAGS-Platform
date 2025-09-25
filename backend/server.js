@@ -2,7 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
-import courseRoutes from "./routes/courses.js";
+import courseRoutes from "./routes/courses/courses.js";
 
 dotenv.config();
 const app = express();

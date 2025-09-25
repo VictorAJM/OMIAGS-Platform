@@ -1,4 +1,5 @@
 <script>
+  export let id; // course ID
   export let title;
   export let description;
   export let progress = 0;
@@ -18,7 +19,7 @@
       <div class="progress" style="width: {progress}%"></div>
     </div>
 
-    <a class="continue-btn" href={continueHref}>Continuar →</a>
+    <a class="continue-btn" href={`/courses/${id}`}>Continuar →</a>
   </div>
 </div>
 
