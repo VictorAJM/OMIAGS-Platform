@@ -6,14 +6,8 @@ const router = express.Router();
 // GET /api/courses
 router.get("/", async (req, res) => {
   try {
-    const courses = await Course.find();
-    const formatted = courses.map(c => ({
-      id: c._id.toString(),
-      title: c.title,
-      description: c.description,
-      progress: c.progress
-    }));
-    res.json(formatted);
+    const courses = await Course.find(); 
+    res.json(courses);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -27,7 +21,7 @@ router.post("/", async (req, res) => {
     const newCourse = new Course({
       title,
       description,
-      accessList: accessList || []
+      accessList: accessList || [],
     });
 
     await newCourse.save();
