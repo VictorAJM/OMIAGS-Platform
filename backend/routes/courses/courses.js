@@ -6,7 +6,7 @@ const router = express.Router();
 // GET /api/courses
 router.get("/", async (req, res) => {
   try {
-    const courses = await Course.find(); 
+    const courses = await Course.find();
     res.json(courses);
   } catch (err) {
     res.status(500).json({ error: err.message });
