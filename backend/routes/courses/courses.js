@@ -7,11 +7,11 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const courses = await Course.find();
-    const formatted = courses.map(c => ({
+    const formatted = courses.map((c) => ({
       id: c._id.toString(),
       title: c.title,
       description: c.description,
-      progress: c.progress
+      progress: c.progress,
     }));
     res.json(formatted);
   } catch (err) {
@@ -27,7 +27,7 @@ router.post("/", async (req, res) => {
     const newCourse = new Course({
       title,
       description,
-      accessList: accessList || []
+      accessList: accessList || [],
     });
 
     await newCourse.save();
