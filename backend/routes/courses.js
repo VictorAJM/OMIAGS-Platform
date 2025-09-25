@@ -6,7 +6,7 @@ const router = express.Router();
 // GET /api/courses
 router.get("/", async (req, res) => {
   try {
-    const courses = await Course.find(); 
+    const courses = await Course.find();
     res.json(courses);
   } catch (err) {
     console.error(err);
@@ -22,7 +22,7 @@ router.post("/", async (req, res) => {
     const newCourse = new Course({
       title,
       description,
-      accessList: accessList || []
+      accessList: accessList || [],
     });
 
     await newCourse.save();
