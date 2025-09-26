@@ -46,4 +46,33 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/lessons/:id
+ * Body: { title, description, content }
+ */
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, content } = req.body;
+
+    // Find the lesson
+    const lesson = await Lesson.findById(id);
+    if (!lesson) return res.status(404).json({ message: "Lesson not found" });
+
+    // Update only allowed fields
+    if (title !== undefined) lesson.title = title;
+    if (description !== undefined) lesson.description = description;
+    if (content !== undefined) lesson.content = content;
+
+    // Save changes
+    await lesson.save();
+
+    res.json({ message: "Lesson updated", lesson });
+  } catch (err) {
+    console.error("Error updating lesson:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 export default router;

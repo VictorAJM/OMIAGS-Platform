@@ -1,5 +1,5 @@
 import unittest
-from utils.lessonsAPI import create_lesson, get_lessons, delete_lesson
+from utils.lessonsAPI import create_lesson, get_lessons, delete_lesson, update_lesson
 
 class TestLessonAPI(unittest.TestCase):
 
@@ -25,6 +25,16 @@ class TestLessonAPI(unittest.TestCase):
         delete_response = delete_lesson(lesson_id)
         self.assertEqual(delete_response["message"], "Lesson deleted")
     
+    def test_update_lesson_API(self):
+        # Create
+        lesson = create_lesson(self.COURSE_ID, "Unit Test Lesson", "Testing", {"pdf": "url"})
+        self.assertIsNotNone(lesson)
+        lesson_id = lesson["_id"]
+
+        # Update
+        updated = update_lesson(lesson_id, title="Updated Lesson Title")
+        print("++++++++++++++++++", updated)
+        self.assertEqual(updated["lesson"]["title"], "Updated Lesson Title")
 
 if __name__ == "__main__":
     unittest.main()
