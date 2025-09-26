@@ -22,7 +22,8 @@ router.get("/:courseId", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { courseId, title, description, content } = req.body;
-    if (!courseId || !title) return res.status(400).json({ message: "courseId and title required" });
+    if (!courseId || !title)
+      return res.status(400).json({ message: "courseId and title required" });
 
     const lesson = new Lesson({ courseId, title, description, content });
     await lesson.save();
@@ -73,6 +74,5 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 export default router;
