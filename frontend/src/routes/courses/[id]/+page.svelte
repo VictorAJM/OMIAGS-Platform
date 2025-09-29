@@ -1,4 +1,5 @@
 <script>
+  import NavBar from "../../../lib/components/NavBar.svelte";
   import { onMount } from "svelte";
   import { page } from "$app/stores";
 
@@ -125,6 +126,8 @@
     background: #2980b9;
   }
 </style>
+
+<NavBar viewerType="student" username="Chaska" />
 
 <div class="page">
   <h2>📚 Lecciones del curso</h2>
