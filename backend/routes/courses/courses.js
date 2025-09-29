@@ -42,7 +42,6 @@ router.get("/:courseId", async (req, res) => {
   }
 });
 
-
 // POST /api/courses
 router.post("/", async (req, res) => {
   try {
