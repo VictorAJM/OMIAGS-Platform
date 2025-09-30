@@ -1,5 +1,5 @@
 <script lang="ts">
-  import NavBar from "./NavBar.svelte";
+  import NavBar from "../lib/components/NavBar.svelte";
   import CourseCard from "./CourseCard.svelte";
   import { onMount } from "svelte";
 

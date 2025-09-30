@@ -1,5 +1,5 @@
 <script>
-  import { createNav } from "../lib/navFactory.js";
+  import { createNav } from "../navFactory.js";
 
   export let viewerType = "student"; // or "teacher"
   export let username = "Chaska";

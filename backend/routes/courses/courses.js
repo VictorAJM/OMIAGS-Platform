@@ -19,6 +19,29 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET /api/courses/:courseId
+router.get("/:courseId", async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    const course = await Course.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    res.json({
+      id: course._id.toString(),
+      title: course.title,
+      description: course.description,
+      progress: course.progress,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // POST /api/courses
 router.post("/", async (req, res) => {
   try {
