@@ -10,6 +10,10 @@ const lessonSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
   contents: [contentSchema],
+  completed: {
+    type: Boolean,
+    default: false, // lessons start as not completed
+  },
 });
 
 export default mongoose.model("Lesson", lessonSchema);

@@ -39,6 +39,28 @@
     // Aquí decides a dónde redirigir
     window.location.href = `/content/${content._id}`;
   }
+
+  async function toggleCompleted(lesson) {
+    try {
+      const newStatus = !lesson.completed;
+      const res = await fetch(`http://localhost:5000/api/lessons/${lesson._id}/completed`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: newStatus })
+      });
+
+      if (!res.ok) throw new Error("Failed to update lesson");
+
+      const updatedLesson = await res.json();
+
+      // Update local lessons state
+      lessons = lessons.map(l => 
+        l._id === updatedLesson._id ? { ...l, completed: updatedLesson.completed } : l
+      );
+    } catch (err) {
+      console.error("Error updating completed:", err);
+    }
+  }
 </script>
 
 <NavBar viewerType="student" username="Chaska" />
@@ -63,15 +85,35 @@
       <div class="lessons-list">
         {#each lessons as lesson, i}
           <div class="lesson-card">
+            <!-- Lesson header -->
             <div class="lesson-header" on:click={() => toggleLesson(lesson._id)}>
+              
+              <!-- Number -->
               <span class="lesson-number">{i + 1}</span>
+
+              <!-- Title & description -->
               <div class="lesson-content">
                 <h3>{lesson.title}</h3>
                 <p>{lesson.description}</p>
               </div>
-              <span class="expand-icon">{expandedLesson === lesson._id ? "−" : "+"}</span>
+
+              <!-- Actions -->
+              <div class="lesson-actions" on:click|stopPropagation>
+                <label class="completed-toggle">
+                  <input
+                    type="checkbox"
+                    checked={lesson.completed}
+                    on:change={() => toggleCompleted(lesson)}
+                  />
+                  <span>{lesson.completed ? "Completo" : "Incompleto"}</span>
+                </label>
+                <span class="expand-icon">
+                  {expandedLesson === lesson._id ? "−" : "+"}
+                </span>
+              </div>
             </div>
 
+            <!-- Expanded contents -->
             {#if expandedLesson === lesson._id}
               <ul class="contents-list">
                 {#each lesson.contents as content}
@@ -109,7 +151,7 @@
   }
 
   .lesson-card {
-    background: #ffffff;
+    background: #fff;
     border: 1px solid #e0e0e0;
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -121,7 +163,7 @@
     align-items: center;
     padding: 1rem 1.25rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease;
   }
 
   .lesson-header:hover {
@@ -136,6 +178,10 @@
     flex-shrink: 0;
   }
 
+  .lesson-content {
+    flex-grow: 1;
+  }
+
   .lesson-content h3 {
     margin: 0;
     font-size: 1.05rem;
@@ -148,8 +194,26 @@
     color: #555;
   }
 
+  .lesson-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .completed-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: #444;
+    cursor: pointer;
+  }
+
+  .completed-toggle input {
+    cursor: pointer;
+  }
+
   .expand-icon {
-    margin-left: auto;
     font-size: 1.5rem;
     color: #777;
   }

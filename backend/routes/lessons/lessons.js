@@ -80,4 +80,30 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+// PUT /api/lessons/:id/completed
+router.put("/:id/completed", async (req, res) => {
+  try {
+    const { completed } = req.body;
+
+    if (typeof completed !== "boolean") {
+      return res.status(400).json({ message: "Completed must be true or false" });
+    }
+
+    const updatedLesson = await Lesson.findByIdAndUpdate(
+      req.params.id,
+      { completed },
+      { new: true } // return the updated document
+    );
+
+    if (!updatedLesson) {
+      return res.status(404).json({ message: "Lesson not found" });
+    }
+
+    res.json(updatedLesson);
+  } catch (err) {
+    console.error("Error updating lesson:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;
