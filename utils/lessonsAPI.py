@@ -54,6 +54,9 @@ def update_lesson(lesson_id, title=None, description=None, content=None):
     except requests.exceptions.RequestException as e:
         print("❌ Error updating lesson:", e)
         
+def toggle_lesson_completed(lesson_id, completed):
+    response = requests.put(f"{API_URL}/lessons/{lesson_id}/completed", json={"completed": completed})
+    return response.json()
         
 if __name__ == "__main__":
 
