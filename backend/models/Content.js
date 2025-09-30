@@ -8,7 +8,7 @@ const contentSchema = new mongoose.Schema({
   },
   title: { type: String, required: true },
   url: { type: String }, // e.g., video link, pdf link, exercise path
-  data: { type: mongoose.Schema.Types.Mixed }, 
+  data: { type: mongoose.Schema.Types.Mixed },
   // for flexible objects, e.g. quiz questions
 });
 

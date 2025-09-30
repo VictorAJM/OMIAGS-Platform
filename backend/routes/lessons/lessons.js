@@ -17,7 +17,10 @@ router.get("/:id", async (req, res) => {
 router.get("/:courseId/lessons", async (req, res) => {
   try {
     const { courseId } = req.params;
-    const lessons = await Lesson.find({ courseId }).populate("courseId", "title");
+    const lessons = await Lesson.find({ courseId }).populate(
+      "courseId",
+      "title",
+    );
     res.json(lessons);
   } catch (err) {
     console.error("Error fetching lessons:", err);
@@ -86,13 +89,15 @@ router.put("/:id/completed", async (req, res) => {
     const { completed } = req.body;
 
     if (typeof completed !== "boolean") {
-      return res.status(400).json({ message: "Completed must be true or false" });
+      return res
+        .status(400)
+        .json({ message: "Completed must be true or false" });
     }
 
     const updatedLesson = await Lesson.findByIdAndUpdate(
       req.params.id,
       { completed },
-      { new: true } // return the updated document
+      { new: true }, // return the updated document
     );
 
     if (!updatedLesson) {
