@@ -3,17 +3,24 @@ import Lesson from "../../models/Lesson.js";
 
 const router = express.Router();
 
-// GET /api/lessons/:courseId
-router.get("/:courseId", async (req, res) => {
+// en routes/lessons.js
+router.get("/:id", async (req, res) => {
+  try {
+    const lesson = await Lesson.findById(req.params.id).populate("courseId");
+    res.json(lesson);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// en routes/courses.js
+router.get("/:courseId/lessons", async (req, res) => {
   try {
     const { courseId } = req.params;
-
-    // Find lessons for this course
-    const lessons = await Lesson.find({ courseId });
-
+    const lessons = await Lesson.find({ courseId }).populate("courseId", "title");
     res.json(lessons);
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching lessons:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -21,15 +28,15 @@ router.get("/:courseId", async (req, res) => {
 // POST /api/lessons
 router.post("/", async (req, res) => {
   try {
-    const { courseId, title, description, content } = req.body;
+    const { courseId, title, description, contents } = req.body;
     if (!courseId || !title)
       return res.status(400).json({ message: "courseId and title required" });
 
-    const lesson = new Lesson({ courseId, title, description, content });
+    const lesson = new Lesson({ courseId, title, description, contents });
     await lesson.save();
     res.status(201).json(lesson);
   } catch (err) {
-    console.error(err);
+    console.error("Error creating lesson:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -42,19 +49,17 @@ router.delete("/:id", async (req, res) => {
     if (!lesson) return res.status(404).json({ message: "Lesson not found" });
     res.json({ message: "Lesson deleted" });
   } catch (err) {
-    console.error(err);
+    console.error("Error deleting lesson:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-/**
- * PUT /api/lessons/:id
- * Body: { title, description, content }
- */
+// PUT /api/lessons/:id
+// Body: { title?, description?, contents? }
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, content } = req.body;
+    const { title, description, contents } = req.body;
 
     // Find the lesson
     const lesson = await Lesson.findById(id);
@@ -63,7 +68,7 @@ router.put("/:id", async (req, res) => {
     // Update only allowed fields
     if (title !== undefined) lesson.title = title;
     if (description !== undefined) lesson.description = description;
-    if (content !== undefined) lesson.content = content;
+    if (contents !== undefined) lesson.contents = contents;
 
     // Save changes
     await lesson.save();

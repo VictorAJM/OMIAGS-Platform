@@ -10,6 +10,7 @@
   let error = "";
 
   let courseId = $page.params.id;
+  let expandedLesson = null; // controlar qué lección está expandida
 
   onMount(async () => {
     try {
@@ -19,12 +20,9 @@
       course = await courseRes.json();
 
       // Fetch lessons
-      const lessonRes = await fetch(`http://localhost:5000/api/lessons/${courseId}`);
+      const lessonRes = await fetch(`http://localhost:5000/api/lessons/${courseId}/lessons`);
       if (!lessonRes.ok) throw new Error("Failed to load lessons");
       lessons = await lessonRes.json();
-
-      // Ensure lessons are ordered
-      lessons = lessons.sort((a, b) => a.order - b.order);
 
     } catch (err) {
       error = err.message;
@@ -33,8 +31,13 @@
     }
   });
 
-  function openLesson(lesson) {
-    alert(`Abrir lección: ${lesson.title}`);
+  function toggleLesson(lessonId) {
+    expandedLesson = expandedLesson === lessonId ? null : lessonId;
+  }
+
+  function openContent(content) {
+    // Aquí decides a dónde redirigir
+    window.location.href = `/content/${content._id}`;
   }
 </script>
 
@@ -59,12 +62,26 @@
     {:else}
       <div class="lessons-list">
         {#each lessons as lesson, i}
-          <div class="lesson-card" on:click={() => openLesson(lesson)}>
-            <span class="lesson-number">{i + 1}</span>
-            <div class="lesson-content">
-              <h3>{lesson.title}</h3>
-              <p>{lesson.description}</p>
+          <div class="lesson-card">
+            <div class="lesson-header" on:click={() => toggleLesson(lesson._id)}>
+              <span class="lesson-number">{i + 1}</span>
+              <div class="lesson-content">
+                <h3>{lesson.title}</h3>
+                <p>{lesson.description}</p>
+              </div>
+              <span class="expand-icon">{expandedLesson === lesson._id ? "−" : "+"}</span>
             </div>
+
+            {#if expandedLesson === lesson._id}
+              <ul class="contents-list">
+                {#each lesson.contents as content}
+                  <li class="content-item" on:click={() => openContent(content)}>
+                    <span class="content-type">{content.type.toUpperCase()}</span>
+                    <span class="content-title">{content.title}</span>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
           </div>
         {/each}
       </div>
@@ -92,21 +109,23 @@
   }
 
   .lesson-card {
-    display: flex;
-    align-items: center;
     background: #ffffff;
     border: 1px solid #e0e0e0;
-    padding: 1rem 1.25rem;
     border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
   }
 
-  .lesson-card:hover {
+  .lesson-header {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .lesson-header:hover {
     background: #f7fbff;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .lesson-number {
@@ -127,5 +146,47 @@
     margin: 0.25rem 0 0;
     font-size: 0.9rem;
     color: #555;
+  }
+
+  .expand-icon {
+    margin-left: auto;
+    font-size: 1.5rem;
+    color: #777;
+  }
+
+  .contents-list {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem 1rem 1rem 3rem;
+    background: #fafafa;
+  }
+
+  .content-item {
+    padding: 0.5rem 0;
+    cursor: pointer;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+  }
+
+  .content-item:last-child {
+    border-bottom: none;
+  }
+
+  .content-item:hover {
+    background: #eef6ff;
+  }
+
+  .content-type {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #0077cc;
+    text-transform: uppercase;
+  }
+
+  .content-title {
+    font-size: 0.9rem;
+    color: #333;
   }
 </style>

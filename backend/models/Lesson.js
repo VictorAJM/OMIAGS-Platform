@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import contentSchema from "./Content.js";
 
 const lessonSchema = new mongoose.Schema({
   courseId: {
@@ -8,7 +9,7 @@ const lessonSchema = new mongoose.Schema({
   },
   title: { type: String, required: true },
   description: String,
-  content: Object, // flexible JSON: { video, pdf, exercise, quiz }
+  contents: [contentSchema],
 });
 
 export default mongoose.model("Lesson", lessonSchema);
