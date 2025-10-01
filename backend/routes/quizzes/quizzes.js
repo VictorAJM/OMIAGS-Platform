@@ -20,7 +20,9 @@ router.get("/", async (req, res) => {
     return res.json(quizzes);
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Server error while fetching quizzes." });
+    return res
+      .status(500)
+      .json({ message: "Server error while fetching quizzes." });
   }
 });
 
@@ -78,7 +80,9 @@ router.post("/", async (req, res) => {
     return res.status(201).json(newQuiz);
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Server error while creating quiz." });
+    return res
+      .status(500)
+      .json({ message: "Server error while creating quiz." });
   }
 });
 
