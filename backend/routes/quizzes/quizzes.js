@@ -36,15 +36,15 @@ router.get("/:quizId", async (req, res) => {
     res.json({
       id: quiz._id.toString(),
       title: quiz.title,
-      questions: quiz.questions,
+      //questions: quiz.questions,
       // Map over questions to remove the correct answer before sending to the client
-      /*questions: quiz.questions.map(q => ({
+      questions: quiz.questions.map(q => ({
         _id: q._id,
         title: q.title,
         type: q.type,
         value: q.value,
         options: q.options,
-      })),*/
+      })),
     });
   } catch (err) {
     console.error(err);
