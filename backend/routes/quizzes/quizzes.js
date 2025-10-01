@@ -15,10 +15,10 @@ router.get("/", async (req, res) => {
     // Find all quizzes that have the matching courseId
     const quizzes = await Quiz.find({ courseId }).select("title description");
 
-    res.json(quizzes);
+    return res.json(quizzes);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error while fetching quizzes." });
+    return res.status(500).json({ message: "Server error while fetching quizzes." });
   }
 });
 
@@ -33,10 +33,10 @@ router.get("/:quizId", async (req, res) => {
       return res.status(404).json({ message: "Quiz not found" });
     }
 
-    res.json({
+    return res.json({
       id: quiz._id.toString(),
       title: quiz.title,
-      //questions: quiz.questions,
+      description: quiz.description,
       // Map over questions to remove the correct answer before sending to the client
       questions: quiz.questions.map(q => ({
         _id: q._id,
@@ -48,7 +48,7 @@ router.get("/:quizId", async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error." });
+    return res.status(500).json({ message: "Server error." });
   }
 });
 
@@ -70,10 +70,10 @@ router.post("/", async (req, res) => {
     });
 
     await newQuiz.save();
-    res.status(201).json(newQuiz);
+    return res.status(201).json(newQuiz);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error while creating quiz." });
+    return res.status(500).json({ message: "Server error while creating quiz." });
   }
 });
 
