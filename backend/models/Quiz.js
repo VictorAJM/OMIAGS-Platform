@@ -13,7 +13,12 @@ const questionSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ["multiple-choice", "true-false", "fill-in-the-blank", "multiple-answer"],
+    enum: [
+      "multiple-choice",
+      "true-false",
+      "fill-in-the-blank",
+      "multiple-answer",
+    ],
   },
   // Points this question is worth.
   value: {
@@ -62,7 +67,7 @@ const quizSchema = new mongoose.Schema(
   {
     // Automatically adds createdAt and updatedAt timestamps.
     timestamps: true,
-  }
+  },
 );
 
 export default mongoose.model("Quiz", quizSchema);

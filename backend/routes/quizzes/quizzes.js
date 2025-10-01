@@ -9,7 +9,9 @@ router.get("/", async (req, res) => {
   try {
     const { courseId } = req.query;
     if (!courseId) {
-      return res.status(400).json({ message: "A courseId query parameter is required." });
+      return res
+        .status(400)
+        .json({ message: "A courseId query parameter is required." });
     }
 
     // Find all quizzes that have the matching courseId
@@ -38,7 +40,7 @@ router.get("/:quizId", async (req, res) => {
       title: quiz.title,
       //questions: quiz.questions,
       // Map over questions to remove the correct answer before sending to the client
-      questions: quiz.questions.map(q => ({
+      questions: quiz.questions.map((q) => ({
         _id: q._id,
         title: q.title,
         type: q.type,
@@ -59,7 +61,10 @@ router.post("/", async (req, res) => {
 
     // Basic validation to ensure required fields are present
     if (!title || !courseId || !questions) {
-      return res.status(400).json({ message: "Missing required fields: title, courseId, and questions are required." });
+      return res.status(400).json({
+        message:
+          "Missing required fields: title, courseId, and questions are required.",
+      });
     }
 
     const newQuiz = new Quiz({
