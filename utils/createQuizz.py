@@ -25,19 +25,6 @@ if __name__ == "__main__":
             "correctAnswer": "const"
             },
             {
-            "title": "Is JavaScript a case-sensitive language?",
-            "type": "true-false",
-            "value": 1,
-            "correctAnswer": True
-            },
-            {
-            "title": "Which data types can an array hold in JavaScript?",
-            "type": "multiple-answer",
-            "value": 2,
-            "options": ["String", "Number", "Boolean", "Object"],
-            "correctAnswer": ["String", "Number", "Boolean", "Object"]
-            },
-            {
             "title": "The ______ object is the top-level object in a browser environment.",
             "type": "fill-in-the-blank",
             "value": 2,
