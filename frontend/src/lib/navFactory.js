@@ -7,7 +7,7 @@ export function createNav(viewerType) {
     ];
   }
 
-  if (viewerType === "teacher") {
+  if (viewerType === "admin") {
     return [
       { label: "Cursos", href: "#cursos", active: true },
       { label: "Estudiantes", href: "#estudiantes" },

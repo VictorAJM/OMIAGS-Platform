@@ -1,10 +1,20 @@
 <script>
   import { createNav } from "../navFactory.js";
+  import { fade } from "svelte/transition";
+  import ConfirmLogoutModal from "./ConfirmLogoutModal.svelte";
 
   export let viewerType = "student"; // or "teacher"
   export let username = "Chaska";
 
   let navItems = createNav(viewerType);
+  let showModal = false;
+
+  const logout = () => (showModal = true);
+  const confirmLogout = () => {
+    document.cookie = "session=; Max-Age=0; path=/;";
+    window.location.href = "/login";
+  };
+  const cancelLogout = () => (showModal = false);
 </script>
 
 <nav class="navbar">
@@ -20,9 +30,20 @@
   <!-- Perfil -->
   <div class="profile">
     <span class="username">{username}</span>
-    <a href="#logout" class="logout">Cerrar sesión</a>
+    <!-- svelte-ignore a11y_invalid_attribute -->
+    <a href="#" class="logout" on:click|preventDefault={logout}>Cerrar sesión</a>
   </div>
 </nav>
+
+{#if showModal}
+  <div in:fade out:fade>
+    <ConfirmLogoutModal
+      on:confirm={confirmLogout}
+      on:cancel={cancelLogout}
+    />
+  </div>
+{/if}
+
 
 <style>
   /* ===== GLOBAL FONT ===== */
