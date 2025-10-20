@@ -12,17 +12,45 @@
   }
 
   let courses: Course[] = [];
+  let username = "";
+  let viewerType = "student";
+
   onMount(async () => {
+    const token = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("session="))
+    ?.split("=")[1];
+
+    if (!token) {
+      window.location.href = "/login"; // redirect if not logged in
+      return;
+    }
     try {
-      const res = await fetch("http://localhost:5000/api/courses");
-      courses = await res.json();
+      const userRes = await fetch("http://localhost:5000/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (userRes.status === 401) {
+        document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        window.location.href = "/login";
+        return;
+      }
+
+      const userData = await userRes.json();
+      username = userData.name;
+      viewerType = userData.role || "student";
+
+      const courseRes = await fetch("http://localhost:5000/api/courses", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      courses = await courseRes.json();
     } catch (err) {
       console.error("Failed to fetch courses", err);
     }
   });
 </script>
 
-<NavBar viewerType="student" username="Chaska" />
+<NavBar {viewerType} {username} />
 
 <main class="main-content">
   <h2>Mis Cursos</h2>
