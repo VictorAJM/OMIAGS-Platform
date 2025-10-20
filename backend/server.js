@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import courseRoutes from "./routes/courses/courses.js";
 import lessonRoutes from "./routes/lessons/lessons.js";
 import quizRoutes from "./routes/quizzes/quizzes.js";
+import authRoutes from "./routes/auth/auth.js";
 
 dotenv.config();
 const app = express();
@@ -19,6 +20,11 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error(err));
 
+
+app.get("/health", (_req, res) => res.send("ok"));
+
+
+app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/quizzes", quizRoutes);
