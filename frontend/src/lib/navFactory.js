@@ -1,7 +1,7 @@
 export function createNav(viewerType) {
   if (viewerType === "student") {
     return [
-      { label: "Mis Cursos", href: "/courses", active: true },
+      { label: "Mis Cursos", href: "/cursos", active: true },
       { label: "Progreso", href: "/progreso" },
       { label: "Perfil", href: "/perfil" },
     ];
