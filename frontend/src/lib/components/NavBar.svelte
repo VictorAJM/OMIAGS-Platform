@@ -3,7 +3,7 @@
   import { fade } from "svelte/transition";
   import ConfirmLogoutModal from "./ConfirmLogoutModal.svelte";
 
-  export let viewerType = "student"; // or "teacher"
+  export let viewerType = "student";
   export let username = "Chaska";
 
   let navItems = createNav(viewerType);
@@ -15,22 +15,42 @@
     window.location.href = "/login";
   };
   const cancelLogout = () => (showModal = false);
+
+  const selectNavItem = (index) => {
+    navItems = navItems.map((item, i) => ({
+      ...item,
+      active: i === index
+    }));
+    // Only navigate if in browser
+    if (typeof window !== "undefined") {
+      window.location.href = navItems[index].href;
+    }
+  };
+
+  // Only run this on the client
+  import { onMount } from "svelte";
+  onMount(() => {
+    navItems = createNav(viewerType).map((item) => ({
+      ...item,
+      active: typeof window !== "undefined" && window.location.pathname === item.href
+    }));
+  });
 </script>
 
+
 <nav class="navbar">
-  <!-- Menú central -->
   <ul class="nav-links">
-    {#each navItems as item}
+    {#each navItems as item, i}
       <li class:item-active={item.active}>
-        <a href={item.href}>{item.label}</a>
+        <a href={item.href} on:click|preventDefault={() => selectNavItem(i)}>
+          {item.label}
+        </a>
       </li>
     {/each}
   </ul>
 
-  <!-- Perfil -->
   <div class="profile">
     <span class="username">{username}</span>
-    <!-- svelte-ignore a11y_invalid_attribute -->
     <a href="#" class="logout" on:click|preventDefault={logout}>Cerrar sesión</a>
   </div>
 </nav>
@@ -44,15 +64,12 @@
   </div>
 {/if}
 
-
 <style>
-  /* ===== GLOBAL FONT ===== */
   :global(body) {
     font-family: 'Inter', system-ui, sans-serif;
     margin: 0;
   }
 
-  /* ===== NAVBAR BASE ===== */
   .navbar {
     display: flex;
     justify-content: space-between;
@@ -66,7 +83,6 @@
     z-index: 10;
   }
 
-  /* ===== NAV LINKS ===== */
   .nav-links {
     display: flex;
     gap: 2rem;
@@ -87,7 +103,6 @@
     color: #ffd966;
   }
 
-  /* Indicador de sección activa */
   .item-active a::after {
     content: "";
     position: absolute;
@@ -99,7 +114,6 @@
     border-radius: 2px;
   }
 
-  /* ===== PERFIL ===== */
   .profile {
     display: flex;
     align-items: center;
