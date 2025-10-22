@@ -3,7 +3,7 @@ import Quiz from "../../models/Quiz.js";
 
 const router = express.Router();
 
-// GET /api/quizzes?courseId=...
+// GET /api/quizzes?quizId=...
 // Gets all quizzes for a specific course
 router.get("/", async (req, res) => {
   try {
@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
         .json({ message: "A courseId query parameter is required." });
     }
 
-    // Find all quizzes that have the matching courseId
+    // Find all quizzes that have the matching quizId
     const quizzes = await Quiz.find({ courseId }).select("title description");
 
     return res.json(quizzes);
@@ -48,6 +48,7 @@ router.get("/:quizId", async (req, res) => {
         type: q.type,
         value: q.value,
         options: q.options,
+        ...(q.code !== undefined && {code: q.code}),
       })),
     });
   } catch (err) {
@@ -65,7 +66,7 @@ router.post("/", async (req, res) => {
     if (!title || !courseId || !questions) {
       return res.status(400).json({
         message:
-          "Missing required fields: title, courseId, and questions are required.",
+          "Missing required fields: title, quizId, and questions are required.",
       });
     }
 
