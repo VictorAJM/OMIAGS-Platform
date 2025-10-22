@@ -48,7 +48,7 @@ router.get("/:quizId", async (req, res) => {
         type: q.type,
         value: q.value,
         options: q.options,
-        ...(q.code !== undefined && {code: q.code}),
+        ...(q.code !== undefined && { code: q.code }),
       })),
     });
   } catch (err) {
