@@ -18,6 +18,7 @@ const questionSchema = new mongoose.Schema({
       "true-false",
       "fill-in-the-blank",
       "multiple-answer",
+      "complete-the-code",
     ],
   },
   // Points this question is worth.
@@ -28,6 +29,10 @@ const questionSchema = new mongoose.Schema({
   // Array of possible choices for multiple-choice or multiple-answer questions.
   options: {
     type: [String],
+    default: undefined, // Will not be present unless it's a multiple-choice/answer question
+  },
+  code: {
+    type: String,
     default: undefined, // Will not be present unless it's a multiple-choice/answer question
   },
   // The correct answer. The data type depends on the question `type`.

@@ -17,6 +17,17 @@
   $: currentQuestion = quizData ? quizData.questions[currentQuestionIndex] : null;
   $: progress = quizData ? (currentQuestionIndex / quizData.questions.length) * 100 : 0;
 
+  // Reset selectedAnswer when the question changes
+  $: {
+    // This reactive block now depends only on currentQuestionIndex (via currentQuestion)
+    // to prevent it from re-running when selectedAnswer changes.
+    if (quizData && quizData.questions[currentQuestionIndex]?.type === 'multiple-answer') {
+      selectedAnswer = [];
+    } else {
+      selectedAnswer = null;
+    }
+  }
+
   onMount(async () => {
     try {
       const res = await fetch(`http://localhost:5000/api/quizzes/${quizId}`);
@@ -37,18 +48,27 @@
   }
 
   function handleSelectOption(option) {
-    selectedAnswer = option;
+    if (currentQuestion.type === 'multiple-answer') {
+      const currentSelection = selectedAnswer || [];
+      const index = currentSelection.indexOf(option);
+      if (index > -1) {
+        // Create a new array excluding the option
+        selectedAnswer = currentSelection.filter((item) => item !== option);
+      } else {
+        // Create a new array including the new option
+        selectedAnswer = [...currentSelection, option];
+      }
+    } else {
+      selectedAnswer = option;
+    }
   }
 
   function handleSubmit() {
-    if (!selectedAnswer) return;
-
-    // Logic to check answer would go here
+    // Future: Add answer checking logic here before moving on.
 
     if (currentQuestionIndex < quizData.questions.length - 1) {
       // Move to the next question
       currentQuestionIndex++;
-      selectedAnswer = null; // Reset selection
     } else {
       // End of the quiz
       quizFinished = true;
@@ -95,27 +115,45 @@
         <div class="answer-area">
           {#if currentQuestion.type === 'multiple-choice'}
             {#each currentQuestion.options as option}
-              <button
-                class="answer-option"
-                class:selected={selectedAnswer === option}
-                on:click={() => handleSelectOption(option)}
-              >
+              <button class="answer-option" class:selected={selectedAnswer === option} on:click={() => handleSelectOption(option)}>
+                {option}
+              </button>
+            {/each}
+          {:else if currentQuestion.type === 'true-false'}
+            <button class="answer-option" class:selected={selectedAnswer === 'True'} on:click={() => handleSelectOption('True')}>
+              True
+            </button>
+            <button class="answer-option" class:selected={selectedAnswer === 'False'} on:click={() => handleSelectOption('False')}>
+              False
+            </button>
+          {:else if currentQuestion.type === 'multiple-answer'}
+            {#each currentQuestion.options as option}
+              <button class="answer-option" class:selected={selectedAnswer?.includes(option)} on:click={() => handleSelectOption(option)}>
                 {option}
               </button>
             {/each}
           {:else if currentQuestion.type === 'fill-in-the-blank'}
-            <input
-              type="text"
-              class="fill-in-blank-input"
-              placeholder="Type your answer here..."
-              bind:value={selectedAnswer}
-            />
+            <input type="text" class="fill-in-blank-input" placeholder="Type your answer here..." bind:value={selectedAnswer} />
+          {:else if currentQuestion.type === 'complete-the-code'}
+            {@const codeParts = currentQuestion.code.split('[blank]')}
+            <div class="code-question-container">
+              <div class="code-block">
+                <pre><code>{codeParts[0]}<span class="code-blank">{selectedAnswer || '...'}</span>{codeParts[1]}</code></pre>
+              </div>
+            </div>
+
+            {#each currentQuestion.options as option}
+              <button class="answer-option" class:selected={selectedAnswer === option} on:click={() => handleSelectOption(option)}>
+                {option}
+              </button>
+            {/each}
+
           {/if}
         </div>
 
         <!-- Navigation -->
         <div class="navigation-area">
-          <button on:click={handleSubmit} disabled={!selectedAnswer}>
+          <button on:click={handleSubmit} disabled={!selectedAnswer || (Array.isArray(selectedAnswer) && selectedAnswer.length === 0)}>
             {currentQuestionIndex === quizData.questions.length - 1 ? 'Finish Quiz' : 'Submit & Next'}
           </button>
         </div>
@@ -191,8 +229,15 @@
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
+    width: 100%;
   }
 
+  .answer-area-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
+  }
   .answer-option {
     width: 90%;
     padding: 1rem;
@@ -204,6 +249,8 @@
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
+    justify-self: center;
+    box-sizing: border-box;
   }
   .answer-option:hover {
     background-color: #f8f9fa;
@@ -231,6 +278,36 @@
     box-shadow: 0 0 0 2px #d2e3fc; /* Lighter Blue */
   }
 
+  /* --- Code Question --- */
+  .code-question-container {
+    width: 100%;
+    margin-bottom: 2.25rem; /* Increase space between code block and options */
+  }
+  .code-block {
+    background-color: #2d2d2d;
+    color: #f8f8f2;
+    padding: 1rem;
+    border-radius: 8px;
+    width: 95%; /* Make code block slightly less wide */
+    margin: -1rem auto 0; /* Decrease space from question title, and center */
+    box-sizing: border-box;
+    font-family: 'Fira Code', 'Courier New', Courier, monospace;
+    white-space: pre-wrap;
+    text-align: left;
+  }
+
+  .code-block pre {
+    margin: 0;
+  }
+  .code-blank {
+    display: inline-block; /* Allow width and padding */
+    background-color: #44475a;
+    color: #e2b3ff;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    width: 80%; /* Make the blank take up significant width */
+    text-align: left;
+  }
   /* --- Navigation --- */
   .navigation-area {
     margin-top: 1rem;
