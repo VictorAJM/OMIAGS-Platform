@@ -76,7 +76,7 @@
   }
 
   /**
-     * @param {{ currentTarget: { getBoundingClientRect: () => any; classList: { add: (arg0: string) => void; }; }; clientY: number; }} e
+     * @param {{ currentTarget: { getBoundingClientRect: () => any; classList: { add: (arg0: string) => void; remove: (arg0: string) => void; }; }; clientY: number; }} e
      */
   function handleQuestionDragOver(e) {
     // Clear existing indicators to prevent flickering
@@ -148,7 +148,18 @@
 
     quizData.questions = move(quizData.questions, dragStartIndex, finalDropIndex);
   }
+
+  /**
+     * @param {{ key: string; }} e
+     */
+  function handleKeydown(e) {
+      if (e.key === 'Escape' && showAddQuestionModal) {
+          showAddQuestionModal = false;
+      }
+  }
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <NavBar viewerType="student" username="Chaska" />
 
@@ -184,16 +195,18 @@
 </div>
 
 {#if showAddQuestionModal}
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <div class="modal-backdrop" on:click={() => showAddQuestionModal = false}>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-content" on:click|stopPropagation>
         <h2>Select Question Type</h2>
-        <ul class="question-type-list">
-            <li on:click={() => addQuestion('multiple-choice')}>Multiple Choice</li>
-            <li on:click={() => addQuestion('true-false')}>True/False</li>
-            <li on:click={() => addQuestion('fill-in-the-blank')}>Fill in the Blank</li>
-            <li on:click={() => addQuestion('multiple-answer')}>Multiple Answer</li>
-            <li on:click={() => addQuestion('complete-the-code')}>Complete the Code</li>
-        </ul>
+        <div class="question-type-list">
+            <button type="button" on:click={() => addQuestion('multiple-choice')}>Multiple Choice</button>
+            <button type="button" on:click={() => addQuestion('true-false')}>True/False</button>
+            <button type="button" on:click={() => addQuestion('fill-in-the-blank')}>Fill in the Blank</button>
+            <button type="button" on:click={() => addQuestion('multiple-answer')}>Multiple Answer</button>
+            <button type="button" on:click={() => addQuestion('complete-the-code')}>Complete the Code</button>
+        </div>
     </div>
 </div>
 {/if}
@@ -300,6 +313,7 @@
       height: 4px;
       background-color: #1a73e8;
       border-radius: 2px;
+      z-index: 100;
   }
 
   :global(.drop-indicator-top::before) {
@@ -340,24 +354,34 @@
   }
 
   .question-type-list {
-    list-style: none;
     padding: 0;
     margin: 0;
+    display: flex;
+    flex-direction: column;
   }
 
-  .question-type-list li {
-    padding: 1rem;
+  .question-type-list button {
+    width: 100%;
+    background: transparent;
     border: 1px solid #e0e0e0;
+    padding: 1rem;
     border-radius: 8px;
     margin-bottom: 0.75rem;
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s;
     text-align: center;
     font-weight: 500;
+    font-size: inherit;
+    font-family: inherit;
+    color: inherit;
   }
 
-  .question-type-list li:hover {
+  .question-type-list button:hover {
     background-color: #f0f2f5;
     transform: translateY(-2px);
+  }
+
+  .question-type-list button:last-child {
+      margin-bottom: 0;
   }
 </style>
