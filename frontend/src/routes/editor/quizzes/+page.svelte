@@ -12,12 +12,14 @@
         type: "multiple-choice",
         options: ["3", "4", "5"],
         correctAnswer: "4",
+        value: 1,
       },
       {
         _id: "q2",
         title: "Svelte is a compiler.",
         type: "true-false",
         correctAnswer: "True",
+        value: 1,
       },
       {
         _id: "q3",
@@ -25,6 +27,7 @@
         type: "multiple-answer",
         options: ["React", "Svelte", "Node.js"],
         correctAnswer: ["React", "Svelte"],
+        value: 1,
       },
     ],
   };
@@ -51,6 +54,7 @@
       options: questionType === "multiple-choice" || questionType === "multiple-answer" || questionType === "complete-the-code" ? [] : undefined,
       code: questionType === "complete-the-code" ? "" : undefined,
       correctAnswer: questionType === "multiple-answer" ? [] : "",
+      value: 1,
     };
     quizData.questions = [...quizData.questions, newQuestion];
     showAddQuestionModal = false;
@@ -157,6 +161,37 @@
           showAddQuestionModal = false;
       }
   }
+
+  async function handleSaveChanges() {
+    const quizPayload = JSON.parse(JSON.stringify(quizData));
+
+    quizPayload.courseId = "60d5ecb4b7c5a53da8d6f123";
+
+    quizPayload.questions.forEach((/** @type {{ _id: any; value: any; }} */ q) => {
+        delete q._id; // Remove client-side ID
+        q.value = q.value || 1; // Add default value if not present
+    });
+
+    try {
+      const response = await fetch('http://localhost:5000/api/quizzes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(quizPayload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      console.log('Quiz created successfully:', responseData);
+    } catch (error) {
+      console.error('Error creating quiz:', error);
+    }
+  }
+
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -189,7 +224,7 @@
     
 
     <div class="save-changes-area">
-        <button class="save-changes-btn">Save Changes</button>
+        <button class="save-changes-btn" on:click={handleSaveChanges}>Save Changes</button>
     </div>
   </div>
 </div>
