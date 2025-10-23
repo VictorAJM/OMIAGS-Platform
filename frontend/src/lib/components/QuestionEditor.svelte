@@ -187,6 +187,7 @@
     font-size: 0.95rem;
     line-height: 1.6;
     transition: border-color 0.2s;
+    resize: vertical;
   }
 
   .code-input:focus {

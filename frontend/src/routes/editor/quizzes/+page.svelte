@@ -30,10 +30,19 @@
   };
 
   let showAddQuestionModal = false;
+  /**
+     * @type {number}
+     */
   let dragStartIndex;
   let dropPosition = 'top'; // 'top' or 'bottom'
+  /**
+     * @type {HTMLDivElement}
+     */
   let editorCardElement;
 
+  /**
+     * @param {string} questionType
+     */
   function addQuestion(questionType) {
     const newQuestion = {
       _id: `q${Date.now()}`,
@@ -47,16 +56,28 @@
     showAddQuestionModal = false;
   }
 
+  /**
+     * @param {number} index
+     */
   function removeQuestion(index) {
     quizData.questions.splice(index, 1);
     quizData.questions = quizData.questions;
   }
 
+  /**
+     * @param {DragEvent & { currentTarget: EventTarget & HTMLDivElement; }} e
+     * @param {number} index
+     */
   function handleDragStart(e, index) {
-    e.dataTransfer.effectAllowed = 'move';
-    dragStartIndex = index;
+    if(e.dataTransfer){
+      e.dataTransfer.effectAllowed = 'move';
+      dragStartIndex = index;
+    }
   }
 
+  /**
+     * @param {{ currentTarget: { getBoundingClientRect: () => any; classList: { add: (arg0: string) => void; }; }; clientY: number; }} e
+     */
   function handleQuestionDragOver(e) {
     // Clear existing indicators to prevent flickering
     if(editorCardElement){
@@ -76,6 +97,9 @@
     }
   }
 
+  /**
+     * @param {{ clientY: number; }} e
+     */
   function handleGlobalDragOver(e) {
     const viewportHeight = window.innerHeight;
     const scrollThreshold = 80; // pixels from edge
@@ -88,12 +112,21 @@
     }
   }
 
+  /**
+     * @param {any[]} arr
+     * @param {number} from
+     * @param {any} to
+     */
   function move(arr, from, to) {
     const item = arr.splice(from, 1)[0];
     arr.splice(to, 0, item);
     return arr;
   }
 
+  /**
+     * @param {DragEvent & { currentTarget: EventTarget & HTMLDivElement; }} e
+     * @param {number} dropIndex
+     */
   function handleDrop(e, dropIndex) {
     // Clear all indicators on drop
     if(editorCardElement){
@@ -202,6 +235,7 @@
   }
 
   .quiz-description-input {
+    box-sizing: border-box;
     width: 100%;
     border: 1px solid #dadce0;
     border-radius: 8px;
@@ -210,6 +244,7 @@
     min-height: 100px;
     line-height: 1.5;
     transition: border-color 0.2s, box-shadow 0.2s;
+    resize: vertical;
   }
 
   .quiz-description-input:focus {
@@ -256,8 +291,8 @@
     position: relative;
   }
 
-  .drop-indicator-top::before,
-  .drop-indicator-bottom::after {
+  :global(.drop-indicator-top::before),
+  :global(.drop-indicator-bottom::after) {
       content: '';
       position: absolute;
       left: 0;
@@ -267,11 +302,11 @@
       border-radius: 2px;
   }
 
-  .drop-indicator-top::before {
+  :global(.drop-indicator-top::before) {
       top: -8px; /* Half of the gap */
   }
 
-  .drop-indicator-bottom::after {
+  :global(.drop-indicator-bottom::after) {
       bottom: -8px; /* Half of the gap */
   }
 
