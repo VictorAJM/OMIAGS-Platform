@@ -1,5 +1,6 @@
 <script>
   import NavBar from "../../../lib/components/NavBar.svelte";
+  import ScoreCircle from '../../../lib/components/ScoreCircle.svelte';
   import { onMount } from "svelte";
   import { page } from "$app/stores";
 
@@ -14,6 +15,8 @@
   
   let answerState = 'idle'; // 'idle', 'checking', 'checked'
   let lastSubmission = null; // { isCorrect: boolean, correctAnswer: any } | null
+
+  let correctAnswers = 0;
 
   // --- Reactive Derived State ---
   $: quizId = $page.params.id;
@@ -89,6 +92,11 @@
           isCorrect: responseData.correct,
           correctAnswer: responseData.answer
         };
+
+        if(lastSubmission.isCorrect){
+          correctAnswers++;
+        }
+        
         answerState = 'checked';
       } else {
         const errorData = await response.json();
@@ -129,8 +137,9 @@
       </div>
     {:else if quizFinished}
       <div class="quiz-card completion-card">
-        <h2>Quiz Complete!</h2>
-        <p>Thank you for your participation.</p>
+        <h2>Quiz Results</h2>
+        <ScoreCircle score={Math.round((correctAnswers / quizData.questions.length) * 100)} class="centered-score-circle" />
+        <p>You answered {correctAnswers} out of {quizData.questions.length} questions correctly.</p>
         <a href="/" class="back-button">Back to Home</a>
       </div>
     {:else if currentQuestion}
@@ -227,9 +236,9 @@
               {:else}
                 <span class="feedback-icon">❌</span>
                 <div>
-                  <h2>You are fucking stupid!</h2>
+                  <h2>Respuesta incorrecta: </h2>
                   {#if !lastSubmission.isCorrect}
-                    <p class="correct-answer-info">The correct answer is: <strong>{Array.isArray(lastSubmission.correctAnswer) ? lastSubmission.correctAnswer.join(', ') : lastSubmission.correctAnswer}</strong></p>
+                    <p class="correct-answer-info">La respuesta correcta es: <strong>{Array.isArray(lastSubmission.correctAnswer) ? lastSubmission.correctAnswer.join(', ') : lastSubmission.correctAnswer}</strong></p>
                   {/if}
                 </div>
               {/if}
@@ -264,6 +273,7 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    align-items: center; /* Added to center items horizontally */
   }
 
   .error-message {
@@ -418,7 +428,7 @@
   /* --- Start & Completion States --- */
   .start-card, .completion-card {
     text-align: center;
-    gap: 1rem;
+    gap: 1.5rem;
   }
   .start-card h2 { font-size: 2rem; color: #2d3748; }
   .start-card .description {
@@ -440,13 +450,24 @@
     margin-top: 1rem;
   }
   .start-button:hover { background-color: #c53030; }
-  .completion-card h2 { font-size: 1.75rem; color: #1e8e3e; }
+  .completion-card h2 {
+    font-size: 2rem;
+    color: #2d3748;
+    margin-bottom: 1rem;
+  }
   .back-button {
     display: inline-block;
-    margin-top: 1rem;
+    margin-top: 1.5rem;
     text-decoration: none;
-    color: #c53030;
+    color: #fff;
+    background-color: #e53e3e;
+    padding: 0.8rem 2.5rem;
+    border-radius: 8px;
     font-weight: 500;
+    transition: background-color 0.2s;
+  }
+  .back-button:hover {
+    background-color: #c53030;
   }
 
   /* --- Feedback Panel --- */
