@@ -39,6 +39,7 @@
       const userData = await userRes.json();
       username = userData.name;
       viewerType = userData.role || "student";
+      console.log("User ID", userData.id);
 
       const courseRes = await fetch("http://localhost:5000/api/courses", {
         headers: { Authorization: `Bearer ${token}` },

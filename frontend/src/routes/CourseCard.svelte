@@ -11,7 +11,7 @@
   export let progress = 0;
 
   function goToCourse() {
-    goto(`/courses/${id}`);
+    goto(`/cursos/${id}`);
   }
 </script>
 

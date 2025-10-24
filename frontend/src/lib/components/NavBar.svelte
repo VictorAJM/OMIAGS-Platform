@@ -3,7 +3,7 @@
   import { fade } from "svelte/transition";
   import ConfirmLogoutModal from "./ConfirmLogoutModal.svelte";
 
-  export let viewerType = "student";
+  export let viewerType = "student"; // this is completely wring
   export let username = "Chaska";
 
   let navItems = createNav(viewerType);
