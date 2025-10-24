@@ -1,0 +1,38 @@
+Users Export - 7 users
+==================================================
+
+Name: ad
+Email: a@a,a
+Role: student
+ID: 68c1f1707cdf01ed50e36d2f
+------------------------------
+Name: 
+Email: 
+Role: student
+ID: 68c1f1727cdf01ed50e36d31
+------------------------------
+Name: 
+Email: 
+Role: student
+ID: 68c1f1737cdf01ed50e36d33
+------------------------------
+Name: 
+Email: 
+Role: student
+ID: 68c1f1747cdf01ed50e36d35
+------------------------------
+Name: Victor
+Email: jaramillovictorarmando@gmail.com
+Role: admin
+ID: 68f6ae548032e46f1e6cb71c
+------------------------------
+Name: Victor
+Email: jaramillovictorarmando@gmail.com2
+Role: user
+ID: 68f6af678032e46f1e6cb722
+------------------------------
+Name: Victor
+Email: jaramillovictorarmando@gmail.com3
+Role: user
+ID: 68f6b1c1648e35947e589837
+------------------------------
