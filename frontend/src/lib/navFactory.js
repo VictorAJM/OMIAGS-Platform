@@ -9,10 +9,10 @@ export function createNav(viewerType) {
 
   if (viewerType === "admin") {
     return [
-      { label: "Cursos", href: "/courses", active: true },
-      { label: "Estudiantes", href: "/estudiantes" },
-      { label: "Métricas", href: "/metricas" },
-      { label: "Configuración de Perfil", href: "/configuracion" },
+      { label: "Cursos", href: "/adminCursos", active: true },
+      { label: "Estudiantes", href: "/adminEstudiantes" },
+      { label: "Métricas", href: "/adminMetricas" },
+      { label: "Configuración de Perfil", href: "/adminPerfil" },
     ];
   }
 
