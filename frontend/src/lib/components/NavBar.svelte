@@ -2,18 +2,80 @@
   import { createNav } from "../navFactory.js";
   import { fade } from "svelte/transition";
   import ConfirmLogoutModal from "./ConfirmLogoutModal.svelte";
+  import { onMount } from "svelte";
 
-  export let viewerType = "student"; // this is completely wring
-  export let username = "Chaska";
+  // Remove the props since we'll fetch the user data
+  export let viewerType = "student"; // This will be overridden by the API call
+  export let username = "Guest"; // Default value, will be updated
 
-  let navItems = createNav(viewerType);
+  let navItems = [];
   let showModal = false;
+  let isLoading = true;
+
+  // Function to get cookie value
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  };
+
+  // Fetch user data on component mount
+  onMount(async () => {
+    await fetchUserData();
+  });
+
+  const fetchUserData = async () => {
+    try {
+      const token = getCookie('session');
+      
+      if (!token) {
+        // No token found, redirect to login
+        window.location.href = "/login";
+        return;
+      }
+
+      const userRes = await fetch("http://localhost:5000/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (userRes.status === 401) {
+        // Invalid token, clear cookie and redirect
+        document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        window.location.href = "/login";
+        return;
+      }
+
+      if (!userRes.ok) {
+        throw new Error(`HTTP error! status: ${userRes.status}`);
+      }
+
+      const userData = await userRes.json();
+      username = userData.name || "User";
+      viewerType = userData.role || "student";
+
+      // Initialize navigation with the correct viewer type
+      navItems = createNav(viewerType).map((item) => ({
+        ...item,
+        active: window.location.pathname === item.href
+      }));
+
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      // On error, redirect to login for safety
+      document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      window.location.href = "/login";
+    } finally {
+      isLoading = false;
+    }
+  };
 
   const logout = () => (showModal = true);
+  
   const confirmLogout = () => {
-    document.cookie = "session=; Max-Age=0; path=/;";
+    document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     window.location.href = "/login";
   };
+  
   const cancelLogout = () => (showModal = false);
 
   const selectNavItem = (index) => {
@@ -21,53 +83,64 @@
       ...item,
       active: i === index
     }));
+    
     // Only navigate if in browser
     if (typeof window !== "undefined") {
       window.location.href = navItems[index].href;
     }
   };
-
-  // Only run this on the client
-  import { onMount } from "svelte";
-  onMount(() => {
-    navItems = createNav(viewerType).map((item) => ({
-      ...item,
-      active: typeof window !== "undefined" && window.location.pathname === item.href
-    }));
-  });
 </script>
 
-
-<nav class="navbar">
-  <ul class="nav-links">
-    {#each navItems as item, i}
-      <li class:item-active={item.active}>
-        <a href={item.href} on:click|preventDefault={() => selectNavItem(i)}>
-          {item.label}
-        </a>
-      </li>
-    {/each}
-  </ul>
-
-  <div class="profile">
-    <span class="username">{username}</span>
-    <a href="#" class="logout" on:click|preventDefault={logout}>Cerrar sesión</a>
+{#if isLoading}
+  <div class="navbar-loading">
+    <div class="loading-spinner">Loading...</div>
   </div>
-</nav>
+{:else}
+  <nav class="navbar">
+    <ul class="nav-links">
+      {#each navItems as item, i}
+        <li class:item-active={item.active}>
+          <a href={item.href} on:click|preventDefault={() => selectNavItem(i)}>
+            {item.label}
+          </a>
+        </li>
+      {/each}
+    </ul>
 
-{#if showModal}
-  <div in:fade out:fade>
-    <ConfirmLogoutModal
-      on:confirm={confirmLogout}
-      on:cancel={cancelLogout}
-    />
-  </div>
+    <div class="profile">
+      <span class="username">{username}</span>
+      <span class="role-badge">({viewerType})</span>
+      <a href="#" class="logout" on:click|preventDefault={logout}>Cerrar sesión</a>
+    </div>
+  </nav>
+
+  {#if showModal}
+    <div in:fade out:fade>
+      <ConfirmLogoutModal
+        on:confirm={confirmLogout}
+        on:cancel={cancelLogout}
+      />
+    </div>
+  {/if}
 {/if}
 
 <style>
   :global(body) {
     font-family: 'Inter', system-ui, sans-serif;
     margin: 0;
+  }
+
+  .navbar-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(90deg, #2e64d6, #5a8dee);
+    padding: 1rem 2rem;
+    color: white;
+  }
+
+  .loading-spinner {
+    font-weight: 500;
   }
 
   .navbar {
@@ -121,6 +194,14 @@
   }
 
   .username {
+    font-weight: 500;
+  }
+
+  .role-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
     font-weight: 500;
   }
 

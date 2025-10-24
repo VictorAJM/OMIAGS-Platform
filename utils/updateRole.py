@@ -79,7 +79,7 @@ if __name__ == "__main__":
     TARGET_USER_ID = "68f6ae548032e46f1e6cb71c"  # ⚠️ Change this to your specific user ID
     
     # SPECIFIC ROLE - Change this to either 'student' or 'admin'
-    NEW_ROLE = "admin"  # ⚠️ Change this to desired role
+    NEW_ROLE = "student"  # ⚠️ Change this to desired role
     
     print("=== User Role Update Script ===")
     print(f"Target User ID: {TARGET_USER_ID}")
