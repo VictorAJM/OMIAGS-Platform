@@ -119,7 +119,7 @@ router.post("/submit-answer", async (req, res) => {
     if (quiz) {
       const question = quiz.questions.id(questionId);
       if(question){
-        var isCorrect = false;
+        let isCorrect = false;
         if(typeof answer === typeof question.correctAnswer){
           if(typeof answer === String){
             isCorrect = answer === question.correctAnswer;
