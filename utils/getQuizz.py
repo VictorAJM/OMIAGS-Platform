@@ -11,5 +11,5 @@ def create_course(quiz_id):
         print("❌ Error requesting the quiz:", e)
 
 if __name__ == "__main__":
-    quiz_id = "68ef50bacf647ef79e374f1e"
+    quiz_id = "68fa7e2c8612fb2797cde20e"
     create_course(quiz_id)

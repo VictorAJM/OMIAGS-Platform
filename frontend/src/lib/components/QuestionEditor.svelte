@@ -252,12 +252,12 @@
 /* Style for radio checkmark */
 .custom-radio .radio-checkmark:after {
     top: 50%;
-    left: 50%;
+    left: 50% ;
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: white;
-    transform: translate(-50%, -50%);
+    transform: translate(-46%, -46%);
 }
 
 /* Style for checkbox checkmark */
