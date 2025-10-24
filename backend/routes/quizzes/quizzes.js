@@ -26,6 +26,21 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET /api/quizzes/list
+// Get a list of all qui8zzes
+router.get("/list", async (req, res) => {
+  try {
+    const quizzes = await Quiz.find().select("_id title description");
+
+    return res.json(quizzes);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Server error while fetching quizzes." });
+  }
+});
+
 // GET /api/quizzes/:quizId
 router.get("/:quizId", async (req, res) => {
   try {

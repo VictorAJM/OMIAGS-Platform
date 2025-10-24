@@ -232,13 +232,13 @@
             <div class="feedback-header">
               {#if lastSubmission.isCorrect}
                 <span class="feedback-icon">✅</span>
-                <h2>Excellent!</h2>
+                <h2>Correct!</h2>
               {:else}
                 <span class="feedback-icon">❌</span>
                 <div>
-                  <h2>Respuesta incorrecta: </h2>
+                  <h2>Wrong Answer! </h2>
                   {#if !lastSubmission.isCorrect}
-                    <p class="correct-answer-info">La respuesta correcta es: <strong>{Array.isArray(lastSubmission.correctAnswer) ? lastSubmission.correctAnswer.join(', ') : lastSubmission.correctAnswer}</strong></p>
+                    <p class="correct-answer-info">The correct answer is: <strong>{Array.isArray(lastSubmission.correctAnswer) ? lastSubmission.correctAnswer.join(', ') : lastSubmission.correctAnswer}</strong></p>
                   {/if}
                 </div>
               {/if}
