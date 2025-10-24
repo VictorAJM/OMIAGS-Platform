@@ -62,7 +62,7 @@ router.post("/register", async (req, res) => {
     }
 
     // Crear usuario (el hash lo hace el pre('save') del modelo)
-    const user = await User.create({ name, email, password, role: "user" });
+    const user = await User.create({ name, email, password, role: "student" });
 
     // Opcional: iniciar sesión automática (emitimos token)
     const token = jwt.sign(
