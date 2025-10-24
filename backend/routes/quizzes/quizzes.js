@@ -87,4 +87,49 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.post("/submit-answer", async (req, res) => {
+  // We will need to add user data here and some validations to store progress and grades
+  try {
+    const { quizId, questionId, answer } = req.body;
+
+    // Basic validation to ensure required fields are present
+    if (!quizId || !questionId || !answer) {
+      return res.status(400).json({
+        message:
+          "Missing required fields: quizId, questionId and answer are required.",
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId);
+    if (quiz) {
+      const question = quiz.questions.id(questionId);
+      if(question){
+        var isCorrect = false;
+        if(typeof answer === typeof question.correctAnswer){
+          if(typeof answer === String){
+            isCorrect = answer === question.correctAnswer;
+          }else{
+            isCorrect = answer.length === question.correctAnswer.length &&
+            JSON.stringify([...answer].sort()) === JSON.stringify([...question.correctAnswer].sort());
+          }
+        }
+
+        return res.json({
+          correct: isCorrect,
+          answer: question.correctAnswer
+        })
+      }else{
+        return res.status(404).json({ message: "Question not found" });
+      }
+    } else {
+      return res.status(404).json({ message: "Quiz not found" });
+    }
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Server error while creating quiz." });
+  }
+});
+
 export default router;

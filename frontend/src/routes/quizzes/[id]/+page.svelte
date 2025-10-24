@@ -11,6 +11,9 @@
   let quizStarted = false;
   let selectedAnswer = null;
   let quizFinished = false;
+  
+  let answerState = 'idle'; // 'idle', 'checking', 'checked'
+  let lastSubmission = null; // { isCorrect: boolean, correctAnswer: any } | null
 
   // --- Reactive Derived State ---
   $: quizId = $page.params.id;
@@ -19,12 +22,12 @@
 
   // Reset selectedAnswer when the question changes
   $: {
-    // This reactive block now depends only on currentQuestionIndex (via currentQuestion)
-    // to prevent it from re-running when selectedAnswer changes.
-    if (quizData && quizData.questions[currentQuestionIndex]?.type === 'multiple-answer') {
-      selectedAnswer = [];
-    } else {
-      selectedAnswer = null;
+    if (currentQuestion) {
+        if (currentQuestion.type === 'multiple-answer') {
+            selectedAnswer = [];
+        } else {
+            selectedAnswer = null;
+        }
     }
   }
 
@@ -48,14 +51,14 @@
   }
 
   function handleSelectOption(option) {
+    if (answerState !== 'idle') return; // Don't allow changes after submission
+
     if (currentQuestion.type === 'multiple-answer') {
       const currentSelection = selectedAnswer || [];
       const index = currentSelection.indexOf(option);
       if (index > -1) {
-        // Create a new array excluding the option
         selectedAnswer = currentSelection.filter((item) => item !== option);
       } else {
-        // Create a new array including the new option
         selectedAnswer = [...currentSelection, option];
       }
     } else {
@@ -63,16 +66,50 @@
     }
   }
 
-  function handleSubmit() {
-    // Future: Add answer checking logic here before moving on.
+  async function handleSubmit() {
+    if (answerState === 'checking') return;
+    answerState = 'checking';
 
+    const answerPayload = {
+      quizId: quizData.id,
+      questionId: currentQuestion._id,
+      answer: selectedAnswer
+    };
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/quizzes/submit-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(answerPayload),
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        lastSubmission = {
+          isCorrect: responseData.correct,
+          correctAnswer: responseData.answer
+        };
+        answerState = 'checked';
+      } else {
+        const errorData = await response.json();
+        error = errorData.message || 'Failed to submit answer.';
+        answerState = 'idle';
+      }
+    } catch (err) {
+      error = err.message;
+      answerState = 'idle';
+    }
+  }
+
+  function handleNext() {
     if (currentQuestionIndex < quizData.questions.length - 1) {
-      // Move to the next question
       currentQuestionIndex++;
     } else {
-      // End of the quiz
       quizFinished = true;
     }
+    // Reset for the next question
+    answerState = 'idle';
+    lastSubmission = null;
   }
 </script>
 
@@ -115,25 +152,35 @@
         <div class="answer-area">
           {#if currentQuestion.type === 'multiple-choice'}
             {#each currentQuestion.options as option}
-              <button class="answer-option" class:selected={selectedAnswer === option} on:click={() => handleSelectOption(option)}>
+              <button 
+                class="answer-option" 
+                class:selected={selectedAnswer === option} 
+                on:click={() => handleSelectOption(option)}
+                disabled={answerState !== 'idle'}
+              >
                 {option}
               </button>
             {/each}
           {:else if currentQuestion.type === 'true-false'}
-            <button class="answer-option" class:selected={selectedAnswer === 'True'} on:click={() => handleSelectOption('True')}>
+            <button class="answer-option" class:selected={selectedAnswer === 'True'} on:click={() => handleSelectOption('True')} disabled={answerState !== 'idle'}>
               True
             </button>
-            <button class="answer-option" class:selected={selectedAnswer === 'False'} on:click={() => handleSelectOption('False')}>
+            <button class="answer-option" class:selected={selectedAnswer === 'False'} on:click={() => handleSelectOption('False')} disabled={answerState !== 'idle'}>
               False
             </button>
           {:else if currentQuestion.type === 'multiple-answer'}
             {#each currentQuestion.options as option}
-              <button class="answer-option" class:selected={selectedAnswer?.includes(option)} on:click={() => handleSelectOption(option)}>
+              <button 
+                class="answer-option" 
+                class:selected={selectedAnswer?.includes(option)} 
+                on:click={() => handleSelectOption(option)}
+                disabled={answerState !== 'idle'}
+              >
                 {option}
               </button>
             {/each}
           {:else if currentQuestion.type === 'fill-in-the-blank'}
-            <input type="text" class="fill-in-blank-input" placeholder="Type your answer here..." bind:value={selectedAnswer} />
+            <input type="text" class="fill-in-blank-input" placeholder="Type your answer here..." bind:value={selectedAnswer} disabled={answerState !== 'idle'} />
           {:else if currentQuestion.type === 'complete-the-code'}
             {@const codeParts = currentQuestion.code.split('[blank]')}
             <div class="code-question-container">
@@ -143,21 +190,56 @@
             </div>
 
             {#each currentQuestion.options as option}
-              <button class="answer-option" class:selected={selectedAnswer === option} on:click={() => handleSelectOption(option)}>
+              <button 
+                class="answer-option" 
+                class:selected={selectedAnswer === option} 
+                on:click={() => handleSelectOption(option)}
+                disabled={answerState !== 'idle'}
+              >
                 {option}
               </button>
             {/each}
-
           {/if}
         </div>
 
         <!-- Navigation -->
         <div class="navigation-area">
-          <button on:click={handleSubmit} disabled={!selectedAnswer || (Array.isArray(selectedAnswer) && selectedAnswer.length === 0)}>
-            {currentQuestionIndex === quizData.questions.length - 1 ? 'Finish Quiz' : 'Submit & Next'}
-          </button>
+          {#if answerState !== 'checked'}
+            <button on:click={handleSubmit} disabled={!selectedAnswer || (Array.isArray(selectedAnswer) && selectedAnswer.length === 0) || answerState === 'checking'}>
+              {#if answerState === 'checking'}
+                Checking...
+              {:else}
+                Submit
+              {/if}
+            </button>
+          {/if}
         </div>
       </div>
+
+      <!-- Feedback Panel -->
+      {#if answerState === 'checked' && lastSubmission}
+        <div class="feedback-container" class:correct={lastSubmission.isCorrect} class:incorrect={!lastSubmission.isCorrect}>
+          <div class="feedback-content">
+            <div class="feedback-header">
+              {#if lastSubmission.isCorrect}
+                <span class="feedback-icon">✅</span>
+                <h2>Excellent!</h2>
+              {:else}
+                <span class="feedback-icon">❌</span>
+                <div>
+                  <h2>You are fucking stupid!</h2>
+                  {#if !lastSubmission.isCorrect}
+                    <p class="correct-answer-info">The correct answer is: <strong>{Array.isArray(lastSubmission.correctAnswer) ? lastSubmission.correctAnswer.join(', ') : lastSubmission.correctAnswer}</strong></p>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+            <button on:click={handleNext} class="feedback-continue-btn {lastSubmission.isCorrect ? 'correct' : 'incorrect'}">
+              {currentQuestionIndex === quizData.questions.length - 1 ? 'Finish Quiz' : 'Continue'}
+            </button>
+          </div>
+        </div>
+      {/if}
     {/if}
   {/if}
 </div>
@@ -165,10 +247,10 @@
 <style>
   .quiz-page-container {
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
     min-height: calc(100vh - 80px); /* Adjust based on NavBar height */
-    padding: 2rem 1rem;
+    padding: 2rem 1rem 150px; /* Add padding to the bottom for feedback panel */
     background-color: #f0f2f5;
   }
 
@@ -232,12 +314,6 @@
     width: 100%;
   }
 
-  .answer-area-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    width: 100%;
-  }
   .answer-option {
     width: 90%;
     padding: 1rem;
@@ -252,7 +328,7 @@
     justify-self: center;
     box-sizing: border-box;
   }
-  .answer-option:hover {
+  .answer-option:hover:not(:disabled) {
     background-color: #f8f9fa;
     border-color: #cdd1d5;
   }
@@ -261,6 +337,10 @@
     border-color: #1a73e8; /* Blue Accent */
     color: #1967d2; /* Darker Blue */
     font-weight: 500;
+  }
+  .answer-option:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
   }
 
   .fill-in-blank-input {
@@ -277,41 +357,43 @@
     border-color: #1a73e8; /* Blue Accent */
     box-shadow: 0 0 0 2px #d2e3fc; /* Lighter Blue */
   }
+  .fill-in-blank-input:disabled {
+    background-color: #f1f3f4;
+  }
 
   /* --- Code Question --- */
   .code-question-container {
     width: 100%;
-    margin-bottom: 2.25rem; /* Increase space between code block and options */
+    margin-bottom: 2.25rem;
   }
   .code-block {
     background-color: #2d2d2d;
     color: #f8f8f2;
     padding: 1rem;
     border-radius: 8px;
-    width: 95%; /* Make code block slightly less wide */
-    margin: -1rem auto 0; /* Decrease space from question title, and center */
+    width: 95%;
+    margin: -1rem auto 0;
     box-sizing: border-box;
     font-family: 'Fira Code', 'Courier New', Courier, monospace;
     white-space: pre-wrap;
     text-align: left;
   }
-
-  .code-block pre {
-    margin: 0;
-  }
+  .code-block pre { margin: 0; }
   .code-blank {
-    display: inline-block; /* Allow width and padding */
+    display: inline-block;
     background-color: #44475a;
     color: #e2b3ff;
     padding: 0.2em 0.6em;
     border-radius: 4px;
-    width: 80%; /* Make the blank take up significant width */
+    width: 80%;
     text-align: left;
   }
+
   /* --- Navigation --- */
   .navigation-area {
     margin-top: 1rem;
     text-align: center;
+    min-height: 50px; /* Reserve space to prevent layout shift */
   }
   .navigation-area button {
     background-color: #e53e3e; /* Red Accent */
@@ -334,14 +416,11 @@
   }
 
   /* --- Start & Completion States --- */
-  .start-card {
+  .start-card, .completion-card {
     text-align: center;
     gap: 1rem;
   }
-  .start-card h2 {
-    font-size: 2rem;
-    color: #2d3748;
-  }
+  .start-card h2 { font-size: 2rem; color: #2d3748; }
   .start-card .description {
     font-size: 1.1rem;
     color: #4a5568;
@@ -349,7 +428,7 @@
     margin: 0 auto;
   }
   .start-button {
-    background-color: #e53e3e; /* Red Accent */
+    background-color: #e53e3e;
     color: white;
     border: none;
     border-radius: 8px;
@@ -360,22 +439,80 @@
     transition: background-color 0.2s ease;
     margin-top: 1rem;
   }
-  .start-button:hover {
-    background-color: #c53030; /* Darker Red */
-  }
-
-  .completion-card {
-    text-align: center;
-  }
-  .completion-card h2 {
-    font-size: 1.75rem;
-    color: #1e8e3e;
-  }
+  .start-button:hover { background-color: #c53030; }
+  .completion-card h2 { font-size: 1.75rem; color: #1e8e3e; }
   .back-button {
     display: inline-block;
     margin-top: 1rem;
     text-decoration: none;
-    color: #c53030; /* Darker Red */
+    color: #c53030;
     font-weight: 500;
   }
+
+  /* --- Feedback Panel --- */
+  .feedback-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #fff;
+    border-top: 2px solid;
+    padding: 1rem 2rem;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+    animation: slideUp 0.3s ease-out;
+    z-index: 100;
+  }
+  .feedback-container.correct { border-color: #1e8e3e; }
+  .feedback-container.incorrect { border-color: #d93025; }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .feedback-content {
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+
+  .feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .feedback-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  .feedback-container.correct .feedback-header h2 { color: #1e8e3e; }
+  .feedback-container.incorrect .feedback-header h2 { color: #d93025; }
+  .feedback-icon { font-size: 1.5rem; }
+
+  .correct-answer-info {
+    margin: 0;
+    font-size: 1rem;
+    color: #5f6368;
+  }
+  .correct-answer-info strong { color: #202124; }
+
+  .feedback-continue-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 0.8rem 2.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: #fff;
+    flex-shrink: 0;
+    transition: background-color 0.2s;
+  }
+  .feedback-continue-btn.correct { background-color: #1e8e3e; }
+  .feedback-continue-btn.correct:hover { background-color: #1a7a34; }
+  .feedback-continue-btn.incorrect { background-color: #d93025; }
+  .feedback-continue-btn.incorrect:hover { background-color: #b5281f; }
 </style>
