@@ -118,22 +118,24 @@ router.post("/submit-answer", async (req, res) => {
     const quiz = await Quiz.findById(quizId);
     if (quiz) {
       const question = quiz.questions.id(questionId);
-      if(question){
-        let isCorrect = false;
-        if(typeof answer === typeof question.correctAnswer){
-          if(typeof answer === String){
+      if (question) {
+        var isCorrect = false;
+        if (typeof answer === typeof question.correctAnswer) {
+          if (typeof answer === String) {
             isCorrect = answer === question.correctAnswer;
-          }else{
-            isCorrect = answer.length === question.correctAnswer.length &&
-            JSON.stringify([...answer].sort()) === JSON.stringify([...question.correctAnswer].sort());
+          } else {
+            isCorrect =
+              answer.length === question.correctAnswer.length &&
+              JSON.stringify([...answer].sort()) ===
+                JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
         return res.json({
           correct: isCorrect,
-          answer: question.correctAnswer
-        })
-      }else{
+          answer: question.correctAnswer,
+        });
+      } else {
         return res.status(404).json({ message: "Question not found" });
       }
     } else {
