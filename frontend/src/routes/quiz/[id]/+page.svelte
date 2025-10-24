@@ -21,7 +21,7 @@
   // --- Reactive Derived State ---
   $: quizId = $page.params.id;
   $: currentQuestion = quizData ? quizData.questions[currentQuestionIndex] : null;
-  $: progress = quizData ? (currentQuestionIndex / quizData.questions.length) * 100 : 0;
+  $: progress = quizData ? ((currentQuestionIndex + (answerState === 'checked'? 1: 0)) / quizData.questions.length) * 100 : 0;
 
   // Reset selectedAnswer when the question changes
   $: {
