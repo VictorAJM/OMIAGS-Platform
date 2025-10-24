@@ -17,8 +17,8 @@ router.put("/:userId/role", async (req, res) => {
 
     // Validate role value
     if (!["student", "admin"].includes(role)) {
-      return res.status(400).json({ 
-        message: "Invalid role. Must be either 'student' or 'admin'." 
+      return res.status(400).json({
+        message: "Invalid role. Must be either 'student' or 'admin'.",
       });
     }
 
@@ -26,7 +26,7 @@ router.put("/:userId/role", async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { role },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select("name email role"); // Only return these fields for security
 
     if (!updatedUser) {
@@ -35,17 +35,17 @@ router.put("/:userId/role", async (req, res) => {
 
     return res.json({
       message: "User role updated successfully.",
-      user: updatedUser
+      user: updatedUser,
     });
   } catch (err) {
     console.error(err);
-    
+
     if (err.name === "CastError") {
       return res.status(400).json({ message: "Invalid user ID format." });
     }
-    
-    return res.status(500).json({ 
-      message: "Server error while updating user role." 
+
+    return res.status(500).json({
+      message: "Server error while updating user role.",
     });
   }
 });
@@ -56,7 +56,9 @@ router.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const user = await User.findById(userId).select("name email role createdAt");
+    const user = await User.findById(userId).select(
+      "name email role createdAt",
+    );
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
@@ -65,11 +67,11 @@ router.get("/:userId", async (req, res) => {
     return res.json(user);
   } catch (err) {
     console.error(err);
-    
+
     if (err.name === "CastError") {
       return res.status(400).json({ message: "Invalid user ID format." });
     }
-    
+
     return res.status(500).json({ message: "Server error." });
   }
 });
@@ -82,8 +84,8 @@ router.get("/", async (req, res) => {
     return res.json(users);
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ 
-      message: "Server error while fetching users." 
+    return res.status(500).json({
+      message: "Server error while fetching users.",
     });
   }
 });
