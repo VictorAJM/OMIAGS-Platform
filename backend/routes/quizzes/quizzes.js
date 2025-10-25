@@ -3,7 +3,7 @@ import Quiz from "../../models/Quiz.js";
 
 const router = express.Router();
 
-// GET /api/quizzes?quizId=...
+// GET /api/quizzes?courseId=...
 // Gets all quizzes for a specific course
 router.get("/", async (req, res) => {
   try {
