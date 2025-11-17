@@ -1,13 +1,28 @@
 <script lang="ts">
   export let course;
   import { createEventDispatcher } from 'svelte';
+  import EditCourseModal from './EditCourseModal.svelte'; // <--- Importar componente
+
   const dispatch = createEventDispatcher();
 
-  let showModal = false;
+  let showDeleteModal = false;
+  let showEditModal = false; // <--- Nuevo estado
 
   function confirmDelete() {
-    showModal = false;
+    showDeleteModal = false;
     dispatch('deleteCourse');
+  }
+
+  // Función para manejar cuando el modal guarda exitosamente
+  function onCourseUpdated(event) {
+    // Opción A: Actualizar localmente el objeto para reflejar cambios inmediatos
+    const updated = event.detail;
+    course.name = updated.title;
+    course.description = updated.description;
+    course.level = updated.category;
+    
+    // Opción B: Decirle al padre que recargue todo desde la API
+    dispatch('refresh'); 
   }
 </script>
 
@@ -15,8 +30,12 @@
   <div class="course-header" style="background-color: {course.color}20; border-left: 4px solid {course.color}">
     <div class="course-icon">{course.image}</div>
     <div class="course-actions">
-      <button class="btn-icon" title="Editar">✏️</button>
-      <button class="btn-icon" title="Eliminar" on:click={() => showModal = true}>🗑️</button>
+      <button class="btn-icon" title="Editar" on:click={() => showEditModal = true}>
+        ✏️
+      </button>
+      <button class="btn-icon" title="Eliminar" on:click={() => showDeleteModal = true}>
+        🗑️
+      </button>
     </div>
   </div>
 
@@ -26,33 +45,42 @@
     <div class="course-meta">
       <span class="badge {course.level}">{course.level}</span>
       <div class="stats">
-        <span>👥 {course.students} estudiantes</span>
-        <span>📚 {course.lessons} lecciones</span>
+        <span>👥 {course.students} est.</span>
+        <span>📚 {course.lessons} lec.</span>
       </div>
     </div>
   </div>
 
   <div class="course-footer">
-    <button class="btn-outline" on:click={() => dispatch('openLessons')}>Gestionar Lecciones</button>
+    <button class="btn-outline" on:click={() => dispatch('openLessons')}>
+      Gestionar Lecciones
+    </button>
   </div>
 </div>
 
-{#if showModal}
+{#if showDeleteModal}
   <div class="modal-backdrop">
     <div class="modal">
       <h2>¿Eliminar curso?</h2>
       <p>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar <strong>{course.name}</strong>?</p>
-
       <div class="modal-actions">
-        <button class="cancel" on:click={() => showModal = false}>Cancelar</button>
+        <button class="cancel" on:click={() => showDeleteModal = false}>Cancelar</button>
         <button class="delete" on:click={confirmDelete}>Eliminar</button>
       </div>
     </div>
   </div>
 {/if}
 
+{#if showEditModal}
+  <EditCourseModal 
+    {course} 
+    on:close={() => showEditModal = false}
+    on:updated={onCourseUpdated}
+  />
+{/if}
+
 <style>
-  /* --- EXISTENTE --- */
+  
   .course-card {
     background: white;
     border-radius: 12px;
@@ -73,14 +101,8 @@
     align-items: center;
   }
 
-  .course-icon {
-    font-size: 2rem;
-  }
-
-  .course-actions {
-    display: flex;
-    gap: 0.5rem;
-  }
+  .course-icon { font-size: 2rem; }
+  .course-actions { display: flex; gap: 0.5rem; }
 
   .btn-icon {
     background: none;
@@ -91,59 +113,20 @@
     transition: background 0.2s ease;
   }
 
-  .btn-icon:hover {
-    background: rgba(0,0,0,0.1);
-  }
+  .btn-icon:hover { background: rgba(0,0,0,0.1); }
 
-  .course-content {
-    padding: 1.5rem;
-  }
+  .course-content { padding: 1.5rem; }
+  .course-content h3 { margin: 0 0 0.5rem 0; color: #2d3748; }
+  .course-content p { margin: 0 0 1rem 0; color: #718096; line-height: 1.5; }
 
-  .course-content h3 {
-    margin: 0 0 0.5rem 0;
-    color: #2d3748;
-  }
+  .course-meta { display: flex; justify-content: space-between; align-items: center; }
+  .stats { display: flex; gap: 1rem; font-size: 0.9rem; color: #718096; }
 
-  .course-content p {
-    margin: 0 0 1rem 0;
-    color: #718096;
-    line-height: 1.5;
-  }
+  .badge { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
+  .badge.secundaria { background: #e6fffa; color: #234e52; }
+  .badge.preparatoria { background: #ebf8ff; color: #1a365d; }
 
-  .course-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .stats {
-    display: flex;
-    gap: 1rem;
-    font-size: 0.9rem;
-    color: #718096;
-  }
-
-  .badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-  }
-
-  .badge.secundaria {
-    background: #e6fffa;
-    color: #234e52;
-  }
-
-  .badge.preparatoria {
-    background: #ebf8ff;
-    color: #1a365d;
-  }
-
-  .course-footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid #e2e8f0;
-  }
+  .course-footer { padding: 1rem 1.5rem; border-top: 1px solid #e2e8f0; }
 
   .btn-outline {
     background: transparent;
@@ -156,12 +139,9 @@
     transition: all 0.2s ease;
   }
 
-  .btn-outline:hover {
-    background: #3182ce;
-    color: white;
-  }
+  .btn-outline:hover { background: #3182ce; color: white; }
 
-  /* --- MODAL --- */
+  /* Estilos para el modal de eliminar original */
   .modal-backdrop {
     position: fixed;
     inset: 0;
@@ -171,7 +151,6 @@
     align-items: center;
     z-index: 50;
   }
-
   .modal {
     background: white;
     padding: 2rem;
@@ -180,47 +159,7 @@
     max-width: 380px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.25);
   }
-
-  .modal h2 {
-    margin-top: 0;
-    font-size: 1.4rem;
-    color: #2d3748;
-  }
-
-  .modal p {
-    color: #4a5568;
-    margin: 1rem 0;
-  }
-
-  .modal-actions {
-    margin-top: 1.5rem;
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-  }
-
-  .cancel {
-    background: #e2e8f0;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-
-  .cancel:hover {
-    background: #cbd5e0;
-  }
-
-  .delete {
-    background: #e53e3e;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-
-  .delete:hover {
-    background: #c53030;
-  }
+  .modal-actions { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; }
+  .cancel { background: #e2e8f0; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; }
+  .delete { background: #e53e3e; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; }
 </style>

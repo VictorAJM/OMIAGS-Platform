@@ -112,4 +112,36 @@ router.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
+router.put("/:id", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user._id.toString();
+    const { title, description, category } = req.body;
+    
+
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ message: "Not found" });
+
+
+    if (course.owner.toString() !== userId) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    course.title = title || course.title;
+    course.description = description || course.description;
+    course.category = category || course.category;
+
+    await course.save();
+
+    res.json({
+      id: course._id,
+      title: course.title,
+      description: course.description,
+      category: course.category,
+      progress: course.progress
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
