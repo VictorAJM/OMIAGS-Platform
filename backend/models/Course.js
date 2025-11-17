@@ -4,10 +4,17 @@ const courseSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
 
-  // IDs de usuarios que tienen acceso
+  // IDs de usuarios que pueden acceder
   accessList: [mongoose.Schema.Types.ObjectId],
 
-  // Categoría del curso
+  // Dueño del curso (obligatorio)
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  },
+
+  // Categoría obligatoria
   category: {
     type: String,
     enum: ["Secundaria", "Preparatoria"],

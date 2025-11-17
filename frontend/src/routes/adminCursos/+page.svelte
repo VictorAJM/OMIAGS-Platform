@@ -68,15 +68,15 @@
     if (res.ok) {
       const list = await res.json();
       // Normaliza campos mínimos que usa la UI
-      courses = (Array.isArray(list) ? list : []).map((c: any) => ({
-        id: c.id ?? c._id,
-        name: c.name,
-        description: c.description ?? '',
-        level: c.level ?? 'general',
-        students: c.students ?? 0,
-        lessons: c.lessons ?? 0,
-        image: c.image ?? '📚',
-        color: c.color ?? '#3182ce'
+      courses = list.map((c: any) => ({
+        id: c.id,
+        name: c.title,          // cambiar a title
+        description: c.description || "",
+        level: c.category,      // cambiar a category
+        students: 0,
+        lessons: 0,
+        image: "📚",
+        color: "#3182ce",
       }));
     }
   }
@@ -85,11 +85,13 @@
   // Aquí escuchamos ese evento para crear vía API y refrescar la lista.
   async function handleCreated(e: CustomEvent<Course>) {
     const payload = e.detail;
+
     const res = await fetch(`${API_BASE}/api/courses`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify(payload)
     });
+
     if (res.ok) {
       closeModals();
       await loadCourses();

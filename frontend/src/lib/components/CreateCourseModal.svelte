@@ -8,38 +8,41 @@
   let description = "";
   let category = "Secundaria";
   // @ts-ignore
-  let accessList = [];
+  let accessList = []; // se puede llenar después
 
   // @ts-ignore
   async function createCourse(e) {
     e.preventDefault();
 
     try {
-      const res = await fetch("/api/courses", {
+
+      const token = document.cookie.split("; ")
+      .find((row) => row.startsWith("session="))
+      ?.split("=")[1];
+
+      const res = await fetch("http://localhost:5000/api/courses", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         credentials: "include",
         body: JSON.stringify({
           title,
           description,
+          category,
           // @ts-ignore
           accessList,
-          category,
         })
       });
 
-      // Leer el body UNA sola vez
-      const data = await res.json();
+      const data = await res.json();  // leer una sola vez
 
       if (!res.ok) {
         console.error("Error creating course:", data);
         return;
       }
 
-      // Si todo salió bien, data es el newCourse
       dispatch("created", data);
 
-      // Cerrar modal
+      // cerrar modal
       dispatch("close");
 
     } catch (err) {
