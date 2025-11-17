@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CreateLessonModal from './CreateLessonModal.svelte';
   import { createEventDispatcher, onMount } from 'svelte';
   import { scale, fade } from 'svelte/transition';
   
@@ -9,6 +10,14 @@
   let lessons = [];
   let loading = true;
   let error = '';
+
+  let showCreateModal = false;
+
+  // Esta función se llama cuando el nuevo modal termina con éxito
+  function handleLessonCreated() {
+    showCreateModal = false;
+    fetchLessons(); // Recargas la lista para ver la nueva lección
+  }
 
   // Determinar el ID correcto (por si viene como _id o id)
   $: courseId = selectedCourse._id || selectedCourse.id;
@@ -115,12 +124,20 @@
     </div>
 
     <div class="form-actions">
-      <button class="btn-primary" on:click={() => dispatch('createLesson', { courseId })}>
+      <button class="btn-primary" on:click={() => showCreateModal = true}>
         ➕ Nueva Lección
       </button>
       <button class="btn-secondary" on:click={() => dispatch('close')}>Cerrar</button>
     </div>
   </div>
+
+{#if showCreateModal}
+  <CreateLessonModal 
+    {courseId} 
+    on:close={() => showCreateModal = false}
+    on:created={handleLessonCreated}
+  />
+{/if}
 </div>
 
 <style>
