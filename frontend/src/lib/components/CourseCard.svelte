@@ -2,6 +2,13 @@
   export let course;
   import { createEventDispatcher } from 'svelte';
   const dispatch = createEventDispatcher();
+
+  let showModal = false;
+
+  function confirmDelete() {
+    showModal = false;
+    dispatch('deleteCourse');
+  }
 </script>
 
 <div class="course-card">
@@ -9,7 +16,7 @@
     <div class="course-icon">{course.image}</div>
     <div class="course-actions">
       <button class="btn-icon" title="Editar">✏️</button>
-      <button class="btn-icon" title="Eliminar" on:click={() => dispatch('deleteCourse')}>🗑️</button>
+      <button class="btn-icon" title="Eliminar" on:click={() => showModal = true}>🗑️</button>
     </div>
   </div>
 
@@ -30,7 +37,22 @@
   </div>
 </div>
 
+{#if showModal}
+  <div class="modal-backdrop">
+    <div class="modal">
+      <h2>¿Eliminar curso?</h2>
+      <p>Esta acción no se puede deshacer. ¿Seguro que quieres eliminar <strong>{course.name}</strong>?</p>
+
+      <div class="modal-actions">
+        <button class="cancel" on:click={() => showModal = false}>Cancelar</button>
+        <button class="delete" on:click={confirmDelete}>Eliminar</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
+  /* --- EXISTENTE --- */
   .course-card {
     background: white;
     border-radius: 12px;
@@ -137,5 +159,68 @@
   .btn-outline:hover {
     background: #3182ce;
     color: white;
+  }
+
+  /* --- MODAL --- */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+  }
+
+  .modal {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 95%;
+    max-width: 380px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+
+  .modal h2 {
+    margin-top: 0;
+    font-size: 1.4rem;
+    color: #2d3748;
+  }
+
+  .modal p {
+    color: #4a5568;
+    margin: 1rem 0;
+  }
+
+  .modal-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  .cancel {
+    background: #e2e8f0;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .cancel:hover {
+    background: #cbd5e0;
+  }
+
+  .delete {
+    background: #e53e3e;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .delete:hover {
+    background: #c53030;
   }
 </style>
