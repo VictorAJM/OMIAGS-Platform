@@ -1,46 +1,114 @@
 <script lang="ts">
-  import { fade, scale } from 'svelte/transition';
   import { onMount } from 'svelte';
   import NavBar from '$lib/components/NavBar.svelte';
-  import CourseCard from '../../lib/components/CourseCard.svelte';
-  import CreateCourseModal from '../../lib/components/CreateCourseModal.svelte';
-  import LessonsModal from '../../lib/components/LessonsModal.svelte';
+  import CourseCard from '$lib/components/CourseCard.svelte';
+  import CreateCourseModal from '$lib/components/CreateCourseModal.svelte';
+  import LessonsModal from '$lib/components/LessonsModal.svelte';
 
-  let courses = [
-    { id: 1, name: 'Algoritmos y Estructuras de Datos', description: 'Aprende los fundamentos de algoritmos y estructuras de datos para competencias.', level: 'preparatoria', students: 50, lessons: 15, image: '📚', color: '#f59e0b' },
-    { id: 2, name: 'Programación Competitiva Avanzada', description: 'Problemas desafiantes y técnicas avanzadas de programación.', level: 'preparatoria', students: 35, lessons: 12, image: '💻', color: '#10b981' },
-    { id: 3, name: 'Matemáticas Discretas', description: 'Teoría de números, combinatoria y lógica para competencias de programación.', level: 'secundaria', students: 40, lessons: 10, image: '🧮', color: '#3b82f6' }
-  ];
+  type Course = {
+    id: number | string;
+    name: string;
+    description: string;
+    level: string;
+    students: number;
+    lessons: number;
+    image?: string;
+    color?: string;
+  };
 
+  let courses: Course[] = [];
   let showCreateModal = false;
   let showLessonsModal = false;
-  let selectedCourse = null;
+  let selectedCourse: Course | null = null;
 
   let username = '';
   let viewerType = 'student';
 
+  const API_BASE = 'http://localhost:5000';
+
+  const token = () =>
+    document.cookie.split('; ').find((row) => row.startsWith('session='))?.split('=')[1];
+
+  const authHeaders = () => ({
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token()}`
+  });
+
   const openCreateModal = () => (showCreateModal = true);
-  const openLessonsModal = (course) => { selectedCourse = course; showLessonsModal = true; };
-  const closeModals = () => { showCreateModal = false; showLessonsModal = false; selectedCourse = null; };
-  const deleteCourse = (id: number) => (courses = courses.filter((c) => c.id !== id));
+  const openLessonsModal = (course: Course) => {
+    selectedCourse = course;
+    showLessonsModal = true;
+  };
+  const closeModals = () => {
+    showCreateModal = false;
+    showLessonsModal = false;
+    selectedCourse = null;
+  };
+
+  async function loadUser() {
+    const t = token();
+    if (!t) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const res = await fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
+    if (res.status === 401) {
+      document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      window.location.href = '/login';
+      return;
+    }
+    const data = await res.json();
+    username = data.name;
+    viewerType = data.role || 'student';
+  }
+
+  async function loadCourses() {
+    const res = await fetch(`${API_BASE}/api/courses`, { headers: authHeaders() });
+    if (res.ok) {
+      const list = await res.json();
+      // Normaliza campos mínimos que usa la UI
+      courses = (Array.isArray(list) ? list : []).map((c: any) => ({
+        id: c.id ?? c._id,
+        name: c.name,
+        description: c.description ?? '',
+        level: c.level ?? 'general',
+        students: c.students ?? 0,
+        lessons: c.lessons ?? 0,
+        image: c.image ?? '📚',
+        color: c.color ?? '#3182ce'
+      }));
+    }
+  }
+
+  // El modal de crear curso debería hacer `dispatch('created', nuevoCurso)`
+  // Aquí escuchamos ese evento para crear vía API y refrescar la lista.
+  async function handleCreated(e: CustomEvent<Course>) {
+    const payload = e.detail;
+    const res = await fetch(`${API_BASE}/api/courses`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      closeModals();
+      await loadCourses();
+    }
+  }
+
+  async function deleteCourse(id: number | string) {
+    const res = await fetch(`${API_BASE}/api/courses/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders()
+    });
+    if (res.ok) {
+      courses = courses.filter((c) => c.id !== id);
+    }
+  }
 
   onMount(async () => {
-    const token = document.cookie.split('; ').find((row) => row.startsWith('session='))?.split('=')[1];
-    if (!token) return (window.location.href = '/login');
-
-    try {
-      const res = await fetch('http://localhost:5000/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
-      if (res.status === 401) {
-        document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        window.location.href = '/login';
-        return;
-      }
-      const data = await res.json();
-      username = data.name;
-      viewerType = data.role || 'student';
-    } catch (err) {
-      console.error('Failed to fetch user', err);
-    }
+    await loadUser();
+    await loadCourses();
   });
 </script>
 
@@ -66,7 +134,7 @@
   </div>
 
   {#if showCreateModal}
-    <CreateCourseModal on:close={closeModals} />
+    <CreateCourseModal on:close={closeModals} on:created={handleCreated} />
   {/if}
 
   {#if showLessonsModal && selectedCourse}
@@ -92,7 +160,7 @@
     margin-bottom: 2rem;
   }
 
-  @media(min-width: 768px) {
+  @media (min-width: 768px) {
     .page-header {
       flex-direction: row;
       align-items: center;
