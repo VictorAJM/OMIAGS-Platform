@@ -107,7 +107,9 @@ router.put("/:userId/password", async (req, res) => {
 
     const valid = await user.validatePassword(currentPassword);
     if (!valid) {
-      return res.status(401).json({ message: "Current password is incorrect." });
+      return res
+        .status(401)
+        .json({ message: "Current password is incorrect." });
     }
 
     user.password = newPassword; // pre('save') lo hashea automáticamente
@@ -121,6 +123,5 @@ router.put("/:userId/password", async (req, res) => {
     });
   }
 });
-
 
 export default router;
