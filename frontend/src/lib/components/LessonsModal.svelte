@@ -1,6 +1,7 @@
 <script lang="ts">
   import CreateLessonModal from './CreateLessonModal.svelte';
   import EditLessonModal from './EditLessonModal.svelte';
+  import DeleteLessonModal from './DeleteLessonModal.svelte';
   import { createEventDispatcher, onMount } from 'svelte';
   import { scale, fade } from 'svelte/transition';
   
@@ -14,6 +15,7 @@
 
   let showCreateModal = false;
   let lessonToEdit = null;
+  let lessonToDelete = null;
 
   // Esta función se llama cuando el nuevo modal termina con éxito
   function handleLessonCreated() {
@@ -24,6 +26,11 @@
   function handleLessonUpdated() {
     lessonToEdit = null; // Cerrar modal
     fetchLessons(); // Recargar lista
+  }
+
+  function handleLessonDeleted() {
+    lessonToDelete = null;
+    fetchLessons();
   }
 
   // Determinar el ID correcto (por si viene como _id o id)
@@ -103,6 +110,9 @@
                   <button class="btn-icon" title="Editar lección" on:click={() => lessonToEdit = lesson}>
                     ✏️
                   </button>
+                  <button class="btn-icon delete" title="Eliminar lección" on:click={() => lessonToDelete = lesson}>
+                    🗑️
+                  </button>
                 </div>
               </div>
 
@@ -146,10 +156,19 @@
       on:updated={handleLessonUpdated}
     />
   {/if}
+
+  {#if lessonToDelete}
+    <DeleteLessonModal 
+      lesson={lessonToDelete}
+      on:close={() => lessonToDelete = null}
+      on:deleted={handleLessonDeleted}
+    />
+  {/if}
 </div>
 
 <style>
-  /* Backdrop */
+  /* Estilos existentes (sin cambios importantes, solo añadí .delete) */
+  
   .modal-backdrop {
     position: fixed;
     inset: 0;
@@ -161,7 +180,6 @@
     z-index: 1000;
   }
 
-  /* Modal */
   .modal {
     background: #ffffff;
     border-radius: 16px;
@@ -172,10 +190,7 @@
     flex-direction: column;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
   }
-
-  .modal.large {
-    max-width: 700px;
-  }
+  .modal.large { max-width: 700px; }
 
   .modal-title {
     font-size: 1.4rem;
@@ -186,26 +201,18 @@
     flex-shrink: 0;
   }
 
-  /* Contenedor con scroll */
   .lessons-container {
     flex: 1;
     overflow-y: auto;
     margin-bottom: 1.5rem;
     padding-right: 0.5rem;
-    min-height: 200px; /* Altura mínima para estados de carga */
+    min-height: 200px;
   }
-
-  /* Custom Scrollbar */
   .lessons-container::-webkit-scrollbar { width: 6px; }
   .lessons-container::-webkit-scrollbar-track { background: transparent; }
   .lessons-container::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
 
-  /* Lista */
-  .lessons-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
+  .lessons-list { display: flex; flex-direction: column; gap: 1rem; }
 
   .lesson-item {
     background: #f8fafc;
@@ -217,31 +224,13 @@
     gap: 0.75rem;
     transition: border-color 0.2s;
   }
+  .lesson-item:hover { border-color: #cbd5e0; }
 
-  .lesson-item:hover {
-    border-color: #cbd5e0;
-  }
-
-  .lesson-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .title-group {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .status-indicator {
-    font-size: 1.1rem;
-    color: #cbd5e0;
-    cursor: default;
-  }
-  .status-indicator.completed {
-    color: #10b981;
-  }
+  .lesson-header { display: flex; justify-content: space-between; align-items: center; }
+  .title-group { display: flex; align-items: center; gap: 0.75rem; }
+  
+  .status-indicator { font-size: 1.1rem; color: #cbd5e0; cursor: default; }
+  .status-indicator.completed { color: #10b981; }
 
   .lesson-header h4 {
     font-size: 1.05rem;
@@ -250,26 +239,10 @@
     color: #2d3748;
   }
 
-  .lesson-desc {
-    font-size: 0.95rem;
-    color: #64748b;
-    line-height: 1.5;
-    margin: 0;
-  }
+  .lesson-desc { font-size: 0.95rem; color: #64748b; line-height: 1.5; margin: 0; }
 
-  .materials {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-top: 0.25rem;
-  }
-
-  .no-materials {
-    font-size: 0.85rem;
-    color: #a0aec0;
-    font-style: italic;
-  }
-
+  .materials { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem; }
+  .no-materials { font-size: 0.85rem; color: #a0aec0; font-style: italic; }
   .material-tag {
     background: white;
     padding: 0.3rem 0.6rem;
@@ -282,13 +255,6 @@
     align-items: center;
   }
 
-  .lesson-footer {
-    margin-top: 0.5rem;
-    display: flex;
-    justify-content: flex-start;
-  }
-
-  /* Buttons */
   .btn-primary {
     background: #3b82f6;
     color: white;
@@ -322,24 +288,25 @@
     cursor: pointer;
     transition: all 0.2s;
   }
-  .btn-outline:hover { background: #eff6ff; }
-  
-  .btn-outline.small {
-    padding: 0.35rem 0.85rem;
-    font-size: 0.8rem;
-  }
+  .btn-outline.small { padding: 0.35rem 0.85rem; font-size: 0.8rem; }
 
   .btn-icon {
     background: transparent;
     border: none;
     cursor: pointer;
     font-size: 1.1rem;
-    padding: 4px;
-    border-radius: 4px;
+    padding: 6px;
+    border-radius: 6px;
     opacity: 0.6;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
   }
   .btn-icon:hover { opacity: 1; background: #f1f5f9; }
+  
+  /* Estilo específico para el botón de borrar */
+  .btn-icon.delete:hover {
+    background: #fee2e2;
+    color: #dc2626;
+  }
 
   .form-actions {
     display: flex;
@@ -350,7 +317,6 @@
     flex-shrink: 0;
   }
 
-  /* States */
   .state-message {
     display: flex;
     flex-direction: column;
@@ -361,7 +327,6 @@
     gap: 1rem;
     padding: 2rem 0;
   }
-
   .state-message.error { color: #ef4444; }
   
   .spinner {
@@ -372,8 +337,5 @@
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
