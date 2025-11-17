@@ -1,5 +1,6 @@
 <script lang="ts">
   import CreateLessonModal from './CreateLessonModal.svelte';
+  import EditLessonModal from './EditLessonModal.svelte';
   import { createEventDispatcher, onMount } from 'svelte';
   import { scale, fade } from 'svelte/transition';
   
@@ -12,11 +13,17 @@
   let error = '';
 
   let showCreateModal = false;
+  let lessonToEdit = null;
 
   // Esta función se llama cuando el nuevo modal termina con éxito
   function handleLessonCreated() {
     showCreateModal = false;
     fetchLessons(); // Recargas la lista para ver la nueva lección
+  }
+
+  function handleLessonUpdated() {
+    lessonToEdit = null; // Cerrar modal
+    fetchLessons(); // Recargar lista
   }
 
   // Determinar el ID correcto (por si viene como _id o id)
@@ -52,7 +59,6 @@
       video: '🎥 Video',
       pdf: '📄 PDF',
       quiz: '❓ Cuestionario',
-      text: '📝 Texto'
     };
     return icons[type] || '📦 Material';
   }
@@ -87,36 +93,30 @@
             <div class="lesson-item">
               <div class="lesson-header">
                 <div class="title-group">
-                  <span class="status-indicator" class:completed={lesson.completed} title={lesson.completed ? "Completada" : "Pendiente"}>
+                  <span class="status-indicator" class:completed={lesson.completed}>
                     {lesson.completed ? '✅' : '○'}
                   </span>
                   <h4>Lección {index + 1}: {lesson.title}</h4>
                 </div>
                 
                 <div class="actions">
-                  <button class="btn-icon" title="Editar lección">✏️</button>
-                  </div>
+                  <button class="btn-icon" title="Editar lección" on:click={() => lessonToEdit = lesson}>
+                    ✏️
+                  </button>
+                </div>
               </div>
 
-              {#if lesson.description}
-                <p class="lesson-desc">{lesson.description}</p>
-              {/if}
+              {#if lesson.description}<p class="lesson-desc">{lesson.description}</p>{/if}
 
               {#if lesson.contents && lesson.contents.length > 0}
                 <div class="materials">
                   {#each lesson.contents as content}
-                    <span class="material-tag">
-                      {getContentIcon(content.type)}
-                    </span>
+                    <span class="material-tag">{getContentIcon(content.type)}</span>
                   {/each}
                 </div>
               {:else}
                 <div class="no-materials">Sin materiales adjuntos</div>
               {/if}
-
-              <div class="lesson-footer">
-                <button class="btn-outline small">➕ Agregar Material</button>
-              </div>
             </div>
           {/each}
         </div>
@@ -131,13 +131,21 @@
     </div>
   </div>
 
-{#if showCreateModal}
-  <CreateLessonModal 
-    {courseId} 
-    on:close={() => showCreateModal = false}
-    on:created={handleLessonCreated}
-  />
-{/if}
+  {#if showCreateModal}
+    <CreateLessonModal 
+      {courseId} 
+      on:close={() => showCreateModal = false}
+      on:created={handleLessonCreated}
+    />
+  {/if}
+
+  {#if lessonToEdit}
+    <EditLessonModal 
+      lesson={lessonToEdit}
+      on:close={() => lessonToEdit = null}
+      on:updated={handleLessonUpdated}
+    />
+  {/if}
 </div>
 
 <style>
