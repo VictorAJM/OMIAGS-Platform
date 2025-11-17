@@ -76,10 +76,10 @@ def get_user_details(user_id):
 
 if __name__ == "__main__":
     # SPECIFIC USER ID - Replace with the actual user ID you want to update
-    TARGET_USER_ID = "68f6ae548032e46f1e6cb71c"  # ⚠️ Change this to your specific user ID
+    TARGET_USER_ID = "691a7fb4cf1b0ee3f7731207"  # ⚠️ Change this to your specific user ID
     
     # SPECIFIC ROLE - Change this to either 'student' or 'admin'
-    NEW_ROLE = "student"  # ⚠️ Change this to desired role
+    NEW_ROLE = "admin"  # ⚠️ Change this to desired role
     
     print("=== User Role Update Script ===")
     print(f"Target User ID: {TARGET_USER_ID}")

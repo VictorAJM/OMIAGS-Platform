@@ -12,7 +12,7 @@
   {#if !showPasswordForm}
     <div class="security-info">
       <p>🔒 Tu contraseña se actualizó por última vez hace 30 días</p>
-      <button class="btn-primary" on:click={toggleForm}>🔑 Cambiar Contraseña</button>
+      <button class="btn-primary" on:click={toggleForm}>🔑 THIS SHIT DOES NOT WORK (RIGHT NOW)</button>
     </div>
   {:else}
     <div class="password-form">
