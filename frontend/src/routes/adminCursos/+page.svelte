@@ -134,7 +134,13 @@
   </div>
 
   {#if showCreateModal}
-    <CreateCourseModal on:close={closeModals} on:created={handleCreated} />
+    <CreateCourseModal
+      on:close={() => showCreateModal = false}
+      on:created={(e) => {
+        const newCourse = e.detail;
+        courses = [...courses, newCourse]; // refrescar lista
+      }}
+    />
   {/if}
 
   {#if showLessonsModal && selectedCourse}

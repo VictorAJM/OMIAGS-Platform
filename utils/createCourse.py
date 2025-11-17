@@ -2,13 +2,14 @@ import requests
 
 API_URL = "http://localhost:5000/api/courses"
 
-def create_course(title, description, access_list=None):
+def create_course(title, description, category, access_list=None):
     if access_list is None:
         access_list = []
 
     payload = {
         "title": title,
         "description": description,
+        "category": category,   # <-- agregado
         "accessList": access_list
     }
 
@@ -24,5 +25,6 @@ if __name__ == "__main__":
     create_course(
         title="Machine Learning 101",
         description="Introductory course on ML",
+        category="preparatoria",
         access_list=[]
     )

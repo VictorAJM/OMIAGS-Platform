@@ -12,6 +12,7 @@ router.get("/", async (req, res) => {
       title: c.title,
       description: c.description,
       progress: c.progress,
+      category: c.category,
     }));
     res.json(formatted);
   } catch (err) {
@@ -35,6 +36,7 @@ router.get("/:courseId", async (req, res) => {
       title: course.title,
       description: course.description,
       progress: course.progress,
+      category: course.category,
     });
   } catch (err) {
     console.error(err);
@@ -45,12 +47,13 @@ router.get("/:courseId", async (req, res) => {
 // POST /api/courses
 router.post("/", async (req, res) => {
   try {
-    const { title, description, accessList } = req.body;
+    const { title, description, accessList, category } = req.body;
 
     const newCourse = new Course({
       title,
       description,
       accessList: accessList || [],
+      category,
     });
 
     await newCourse.save();

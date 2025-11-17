@@ -3,28 +3,81 @@
   import { scale } from 'svelte/transition';
 
   const dispatch = createEventDispatcher();
+
+  let title = "";
+  let description = "";
+  let category = "Secundaria";
+  // @ts-ignore
+  let accessList = [];
+
+  // @ts-ignore
+  async function createCourse(e) {
+    e.preventDefault();
+
+    try {
+      const res = await fetch("/api/courses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title,
+          description,
+          // @ts-ignore
+          accessList,
+          category,
+        })
+      });
+
+      // Leer el body UNA sola vez
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Error creating course:", data);
+        return;
+      }
+
+      // Si todo salió bien, data es el newCourse
+      dispatch("created", data);
+
+      // Cerrar modal
+      dispatch("close");
+
+    } catch (err) {
+      console.error("Request failed:", err);
+    }
+  }
 </script>
 
 <div class="modal-backdrop" on:click={() => dispatch('close')}>
   <div class="modal" on:click|stopPropagation in:scale>
     <h3 class="modal-title">Crear Nuevo Curso</h3>
 
-    <form class="form">
+    <form class="form" on:submit={createCourse}>
       <div class="form-group">
         <label>Nombre del curso</label>
-        <input type="text" placeholder="Ej: Matemáticas Básicas" />
+        <input
+          type="text"
+          placeholder="Ej: Matemáticas Básicas"
+          bind:value={title}
+          required
+        />
       </div>
 
       <div class="form-group">
         <label>Descripción</label>
-        <textarea placeholder="Describe el contenido del curso..." rows="3"></textarea>
+        <textarea
+          placeholder="Describe el contenido del curso..."
+          rows="3"
+          bind:value={description}
+          required
+        ></textarea>
       </div>
 
       <div class="form-group">
         <label>Nivel</label>
-        <select>
-          <option value="secundaria">Secundaria</option>
-          <option value="preparatoria">Preparatoria</option>
+        <select bind:value={category}>
+          <option value="Secundaria">Secundaria</option>
+          <option value="Preparatoria">Preparatoria</option>
         </select>
       </div>
 
