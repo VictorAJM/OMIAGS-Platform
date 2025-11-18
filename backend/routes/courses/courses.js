@@ -16,8 +16,8 @@ router.get("/", requireAuth, async (req, res) => {
 
     // obtener conteo de lecciones por curso
     const lessonsByCourse = await Lesson.aggregate([
-      { $match: { courseId: { $in: courses.map(c => c._id) } } },
-      { $group: { _id: "$courseId", count: { $sum: 1 } } }
+      { $match: { courseId: { $in: courses.map((c) => c._id) } } },
+      { $group: { _id: "$courseId", count: { $sum: 1 } } },
     ]);
 
     /** @type {{ [key: string]: number }} */
@@ -36,7 +36,6 @@ router.get("/", requireAuth, async (req, res) => {
     }));
 
     res.json(formatted);
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
