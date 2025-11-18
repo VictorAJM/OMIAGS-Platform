@@ -9,13 +9,15 @@ const router = express.Router();
 router.get("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
-    
-    const courses = await Course.find({ owner: userId })
-      .populate('accessList', 'email'); 
+
+    const courses = await Course.find({ owner: userId }).populate(
+      "accessList",
+      "email",
+    );
 
     const lessonsByCourse = await Lesson.aggregate([
-      { $match: { courseId: { $in: courses.map(c => c._id) } } },
-      { $group: { _id: "$courseId", count: { $sum: 1 } } }
+      { $match: { courseId: { $in: courses.map((c) => c._id) } } },
+      { $group: { _id: "$courseId", count: { $sum: 1 } } },
     ]);
 
     const lessonCountMap = {};
@@ -29,11 +31,10 @@ router.get("/", requireAuth, async (req, res) => {
       description: c.description,
       category: c.category,
       lessons: lessonCountMap[c._id.toString()] || 0,
-      students: c.accessList ? c.accessList.map(u => u.email) : []
+      students: c.accessList ? c.accessList.map((u) => u.email) : [],
     }));
 
     res.json(formatted);
-
   } catch (err) {
     console.error("Error getting courses:", err);
     res.status(500).json({ error: err.message });
@@ -45,8 +46,11 @@ router.get("/:courseId", requireAuth, async (req, res) => {
     const userId = req.user._id.toString();
     const { courseId } = req.params;
 
-    const course = await Course.findById(courseId).populate('accessList', 'email name');
-    
+    const course = await Course.findById(courseId).populate(
+      "accessList",
+      "email name",
+    );
+
     if (!course) return res.status(404).json({ message: "Course not found" });
 
     if (course.owner?.toString() !== userId) {
@@ -59,7 +63,7 @@ router.get("/:courseId", requireAuth, async (req, res) => {
       description: course.description,
       progress: course.progress,
       category: course.category,
-      students: course.accessList ? course.accessList.map(u => u.email) : []
+      students: course.accessList ? course.accessList.map((u) => u.email) : [],
     });
   } catch (err) {
     console.error(err);
@@ -98,13 +102,13 @@ router.get("/:courseId/lessons", requireAuth, async (req, res) => {
 router.post("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const { title, description, accessList, category } = req.body; 
+    const { title, description, accessList, category } = req.body;
 
     let initialStudents = [];
 
     if (accessList && Array.isArray(accessList) && accessList.length > 0) {
-        const foundUsers = await User.find({ email: { $in: accessList } });
-        initialStudents = foundUsers.map(u => u._id);
+      const foundUsers = await User.find({ email: { $in: accessList } });
+      initialStudents = foundUsers.map((u) => u._id);
     }
 
     const newCourse = new Course({
@@ -155,7 +159,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
 router.put("/:id", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id.toString();
-    const { title, description, category, students } = req.body; 
+    const { title, description, category, students } = req.body;
 
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: "Not found" });
@@ -168,20 +172,21 @@ router.put("/:id", requireAuth, async (req, res) => {
 
     if (students && Array.isArray(students) && students.length > 0) {
       const foundUsers = await User.find({ email: { $in: students } });
-      
+
       // Check for missing emails
-      const foundEmails = foundUsers.map(u => u.email);
-      const missingEmails = students.filter(email => !foundEmails.includes(email));
+      const foundEmails = foundUsers.map((u) => u.email);
+      const missingEmails = students.filter(
+        (email) => !foundEmails.includes(email),
+      );
 
       if (missingEmails.length > 0) {
-          return res.status(400).json({ 
-              message: `No se encontraron usuarios con los siguientes correos: ${missingEmails.join(', ')}` 
-          });
+        return res.status(400).json({
+          message: `No se encontraron usuarios con los siguientes correos: ${missingEmails.join(", ")}`,
+        });
       }
-      
 
-      const newStudentIds = foundUsers.map(u => u._id.toString());
-      const existingIds = course.accessList.map(id => id.toString());
+      const newStudentIds = foundUsers.map((u) => u._id.toString());
+      const existingIds = course.accessList.map((id) => id.toString());
 
       const mergedIds = new Set([...existingIds, ...newStudentIds]);
       validUserIds = Array.from(mergedIds);
@@ -192,12 +197,12 @@ router.put("/:id", requireAuth, async (req, res) => {
     course.category = category || course.category;
 
     if (students) {
-        course.accessList = validUserIds; 
+      course.accessList = validUserIds;
     }
 
     await course.save();
-    
-    await course.populate('accessList', 'email name');
+
+    await course.populate("accessList", "email name");
 
     res.json({
       id: course._id,
@@ -205,9 +210,8 @@ router.put("/:id", requireAuth, async (req, res) => {
       description: course.description,
       category: course.category,
       progress: course.progress,
-      students: course.accessList.map(u => u.email)
+      students: course.accessList.map((u) => u.email),
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });
