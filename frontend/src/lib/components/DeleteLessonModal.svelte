@@ -25,6 +25,7 @@
 
       dispatch('deleted'); // Éxito
       dispatch('close');
+      dispatch("lessonsUpdated");
       
     } catch (err: any) {
       console.error(err);

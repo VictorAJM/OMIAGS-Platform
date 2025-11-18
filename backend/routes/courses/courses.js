@@ -1,5 +1,6 @@
 import express from "express";
 import Course from "../../models/Course.js";
+import Lesson from "../../models/Lesson.js";
 import { requireAuth } from "../../../middleware/auth.js";
 
 const router = express.Router();
@@ -13,15 +14,29 @@ router.get("/", requireAuth, async (req, res) => {
     const userId = req.user._id;
     const courses = await Course.find({ owner: userId });
 
+    // obtener conteo de lecciones por curso
+    const lessonsByCourse = await Lesson.aggregate([
+      { $match: { courseId: { $in: courses.map(c => c._id) } } },
+      { $group: { _id: "$courseId", count: { $sum: 1 } } }
+    ]);
+
+    /** @type {{ [key: string]: number }} */
+    const lessonCountMap = {};
+    lessonsByCourse.forEach((l) => {
+      lessonCountMap[l._id.toString()] = l.count;
+    });
+
     const formatted = courses.map((c) => ({
       id: c._id.toString(),
-      title: c.title,
+      name: c.title,
       description: c.description,
-      progress: c.progress,
       category: c.category,
+      lessons: lessonCountMap[c._id.toString()] || 0,
+      students: 0, // si luego quieres agregar alumnos
     }));
 
     res.json(formatted);
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -49,6 +64,34 @@ router.get("/:courseId", requireAuth, async (req, res) => {
       progress: course.progress,
       category: course.category,
     });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/:courseId/lessons", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user._id.toString();
+    const { courseId } = req.params;
+
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+
+    if (course.owner?.toString() !== userId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const lessons = await Lesson.find({ courseId });
+
+    const formatted = lessons.map((l) => ({
+      id: l._id.toString(),
+      title: l.title,
+      description: l.description,
+      completed: l.completed,
+      contents: l.contents,
+    }));
+
+    res.json(formatted);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }

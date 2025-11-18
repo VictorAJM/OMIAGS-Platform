@@ -20,17 +20,20 @@
   // Esta función se llama cuando el nuevo modal termina con éxito
   function handleLessonCreated() {
     showCreateModal = false;
-    fetchLessons(); // Recargas la lista para ver la nueva lección
+    fetchLessons(); 
+    dispatch("lessonsUpdated");
   }
 
   function handleLessonUpdated() {
     lessonToEdit = null; // Cerrar modal
     fetchLessons(); // Recargar lista
+    dispatch("lessonsUpdated");
   }
 
   function handleLessonDeleted() {
     lessonToDelete = null;
     fetchLessons();
+    dispatch("lessonsUpdated");
   }
 
   // Determinar el ID correcto (por si viene como _id o id)

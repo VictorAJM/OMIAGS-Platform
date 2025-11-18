@@ -74,15 +74,13 @@
         description: c.description || "",
         level: c.category,      // cambiar a category
         students: 0,
-        lessons: 0,
+        lessons: c.lessons,
         image: "📚",
         color: "#3182ce",
       }));
     }
   }
 
-  // El modal de crear curso debería hacer `dispatch('created', nuevoCurso)`
-  // Aquí escuchamos ese evento para crear vía API y refrescar la lista.
   async function handleCreated(e: CustomEvent<Course>) {
     const payload = e.detail;
 
@@ -146,7 +144,13 @@
   {/if}
 
   {#if showLessonsModal && selectedCourse}
-    <LessonsModal {selectedCourse} on:close={closeModals} />
+    <LessonsModal 
+        {selectedCourse}
+        on:close={closeModals}
+        on:lessonsUpdated={() => {
+            loadCourses();   // actualiza UI
+        }}
+    />
   {/if}
 </div>
 

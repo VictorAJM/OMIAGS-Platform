@@ -1,28 +1,24 @@
 <script lang="ts">
   export let course;
   import { createEventDispatcher } from 'svelte';
-  import EditCourseModal from './EditCourseModal.svelte'; // <--- Importar componente
+  import EditCourseModal from './EditCourseModal.svelte';
 
   const dispatch = createEventDispatcher();
 
   let showDeleteModal = false;
-  let showEditModal = false; // <--- Nuevo estado
+  let showEditModal = false;
 
   function confirmDelete() {
     showDeleteModal = false;
     dispatch('deleteCourse');
   }
 
-  // Función para manejar cuando el modal guarda exitosamente
   function onCourseUpdated(event) {
-    // Opción A: Actualizar localmente el objeto para reflejar cambios inmediatos
     const updated = event.detail;
     course.name = updated.title;
     course.description = updated.description;
     course.level = updated.category;
-    
-    // Opción B: Decirle al padre que recargue todo desde la API
-    dispatch('refresh'); 
+    dispatch('refresh');
   }
 </script>
 
