@@ -52,17 +52,18 @@ router.get("/:quizId", requireAuth, async (req, res) => {
     if (!quiz) {
       return res.status(404).json({ message: "Quiz not found" });
     }
-    
-    const quizAttempt = await QuizAttempt.findOne(
-      {userId: req.user._id, quizId: quizId}
-    )
+
+    const quizAttempt = await QuizAttempt.findOne({
+      userId: req.user._id,
+      quizId: quizId,
+    });
 
     return res.json({
       id: quiz._id.toString(),
       title: quiz.title,
       description: quiz.description,
-      currentQuestion: (quizAttempt? quizAttempt.questionsAnswered : 0),
-      currentScore: (quizAttempt? quizAttempt.currentScore : 0),
+      currentQuestion: quizAttempt ? quizAttempt.questionsAnswered : 0,
+      currentScore: quizAttempt ? quizAttempt.currentScore : 0,
       // Map over questions to remove the correct answer before sending to the client
       questions: quiz.questions.map((q) => ({
         _id: q._id,
@@ -125,11 +126,12 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
     const quiz = await Quiz.findById(quizId);
 
     if (quiz) {
-      let quizAttempt = await QuizAttempt.findOne(
-        {userId: req.user._id, quizId: quizId}
-      )
+      let quizAttempt = await QuizAttempt.findOne({
+        userId: req.user._id,
+        quizId: quizId,
+      });
 
-      if(!quizAttempt){
+      if (!quizAttempt) {
         quizAttempt = new QuizAttempt({
           userId: req.user._id,
           quizId: quizId,
@@ -137,14 +139,14 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
           completed: false, // Initial status
           questionsAnswered: 0,
           currentScore: 0,
-          answers: []
+          answers: [],
         });
       }
 
       const question = quiz.questions[questionIndex];
       if (question) {
-        if(questionIndex !== quizAttempt.questionsAnswered){
-          return res.status(400).json({ message: "Question not allowed" })
+        if (questionIndex !== quizAttempt.questionsAnswered) {
+          return res.status(400).json({ message: "Question not allowed" });
         }
 
         quizAttempt.questionsAnswered++;
@@ -161,18 +163,18 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
           }
         }
 
-        if(isCorrect){
+        if (isCorrect) {
           quizAttempt.currentScore++;
         }
 
-        if(quizAttempt.questionsAnswered === quiz.questions.length){
+        if (quizAttempt.questionsAnswered === quiz.questions.length) {
           quizAttempt.completed = true;
         }
 
         const answerObj = {
           correct: isCorrect,
           answer: question.correctAnswer,
-        }
+        };
 
         quizAttempt.answers.push(answerObj);
         await quizAttempt.save();
