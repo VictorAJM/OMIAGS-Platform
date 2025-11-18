@@ -136,9 +136,10 @@
   {#if showCreateModal}
     <CreateCourseModal
       on:close={() => showCreateModal = false}
-      on:created={(e) => {
+      on:created={async (e) => {
         const newCourse = e.detail;
         courses = [...courses, newCourse]; // refrescar lista
+        await loadCourses();
       }}
     />
   {/if}

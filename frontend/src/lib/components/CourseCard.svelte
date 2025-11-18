@@ -42,7 +42,7 @@
     <div class="course-meta">
       <span class="badge {course.level}">{course.level}</span>
       <div class="stats">
-        <span>👥 {course.students.length} est.</span>
+        <span>👥 {(course.students?.length || 0)} est.</span> 
         <span>📚 {course.lessons} lec.</span>
       </div>
     </div>
