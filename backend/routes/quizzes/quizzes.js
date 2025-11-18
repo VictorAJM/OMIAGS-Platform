@@ -116,7 +116,6 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
 
     // Basic validation to ensure required fields are present
     if (quizId === null || questionIndex === null || answer == null) {
-      console.log(quizId)
       return res.status(400).json({
         message:
           "Missing required fields: quizId, questionIndex and answer are required.",
