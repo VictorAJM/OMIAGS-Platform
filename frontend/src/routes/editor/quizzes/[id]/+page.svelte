@@ -4,6 +4,8 @@
   import NavBar from "../../../../lib/components/NavBar.svelte";
   import QuestionEditor from "../../../../lib/components/QuestionEditor.svelte";
 
+  import SuccessPopup from "../../../../lib/components/SuccessPopup.svelte";
+
   /**
    * @type {{ title: string; description: string; questions: any[]; courseId?: string; }}
    */
@@ -14,6 +16,7 @@
   };
 
   let showAddQuestionModal = false;
+  let showSuccessPopup = false;
   /**
    * @type {number}
    */
@@ -227,7 +230,7 @@
 
       const responseData = await response.json();
       console.log("Quiz updated successfully:", responseData);
-      alert("Quiz saved successfully!");
+      showSuccessPopup = true;
     } catch (error) {
       console.error("Error updating quiz:", error);
       alert("Error saving quiz. Please try again.");
@@ -315,6 +318,13 @@
       </div>
     </div>
   </div>
+{/if}
+
+{#if showSuccessPopup}
+  <SuccessPopup
+    message="Quiz saved successfully!"
+    on:close={() => (showSuccessPopup = false)}
+  />
 {/if}
 
 <style>

@@ -1,5 +1,8 @@
 <script>
   import { createEventDispatcher } from "svelte";
+  /**
+   * @type {{ options: any[]; type: string; correctAnswer: string | any[]; title: any; code: any; }}
+   */
   export let question;
   export let index;
 
@@ -12,11 +15,17 @@
     question.options = [...question.options, "New option"];
   }
 
+  /**
+   * @param {number} optionIndex
+   */
   function removeOption(optionIndex) {
     question.options.splice(optionIndex, 1);
     question.options = question.options;
   }
 
+  /**
+   * @param {string | any[]} option
+   */
   function setCorrectAnswer(option) {
     if (question.type === "multiple-answer") {
       if (!question.correctAnswer) {
@@ -33,6 +42,21 @@
       question.correctAnswer = option;
     }
   }
+  function resize(node) {
+    const handleInput = () => {
+      node.style.height = "auto";
+      node.style.height = node.scrollHeight + "px";
+    };
+    node.addEventListener("input", handleInput);
+    // Initial resize
+    setTimeout(handleInput, 0);
+
+    return {
+      destroy() {
+        node.removeEventListener("input", handleInput);
+      },
+    };
+  }
 </script>
 
 <div class="question-editor-card">
@@ -43,12 +67,15 @@
     >
   </div>
 
-  <input
-    type="text"
+  <textarea
+    use:resize
     bind:value={question.title}
     placeholder="Question Title"
     class="question-title-input"
-  />
+    rows="1"
+    draggable="false"
+    on:mousedown|stopPropagation
+  ></textarea>
 
   <div class="answer-area">
     {#if question.type === "multiple-choice"}
@@ -195,6 +222,15 @@
     border: none;
     border-bottom: 2px solid #ddd;
     margin-bottom: 1rem;
+    resize: none; /* Handled by JS */
+    font-family: inherit;
+    overflow: hidden;
+    display: block;
+    box-sizing: border-box;
+  }
+  .question-title-input:focus {
+    outline: none;
+    border-color: #1a73e8;
   }
   .option-editor {
     display: flex;
