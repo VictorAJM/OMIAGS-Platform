@@ -110,6 +110,42 @@ router.post("/", async (req, res) => {
   }
 });
 
+// PUT /api/quizzes/:quizId
+router.put("/:quizId", async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { title, description, questions } = req.body;
+
+    // Basic validation
+    if (!title || !questions) {
+      return res.status(400).json({
+        message: "Missing required fields: title and questions are required.",
+      });
+    }
+
+    const updatedQuiz = await Quiz.findByIdAndUpdate(
+      quizId,
+      {
+        title,
+        description,
+        questions,
+      },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedQuiz) {
+      return res.status(404).json({ message: "Quiz not found" });
+    }
+
+    return res.json(updatedQuiz);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Server error while updating quiz." });
+  }
+});
+
 router.post("/submit-answer", requireAuth, async (req, res) => {
   // We will need to add user data here and some validations to store progress and grades
   try {
@@ -159,7 +195,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-                JSON.stringify([...question.correctAnswer].sort());
+              JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
