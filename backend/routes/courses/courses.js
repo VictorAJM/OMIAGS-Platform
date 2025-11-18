@@ -1,26 +1,23 @@
 import express from "express";
 import Course from "../../models/Course.js";
 import Lesson from "../../models/Lesson.js";
+import User from "../../models/User.js";
 import { requireAuth } from "../../../middleware/auth.js";
 
 const router = express.Router();
 
-/* ===========================
-   GET /api/courses
-   Devuelve solo cursos del usuario
-=========================== */
 router.get("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const courses = await Course.find({ owner: userId });
+    
+    const courses = await Course.find({ owner: userId })
+      .populate('accessList', 'email'); 
 
-    // obtener conteo de lecciones por curso
     const lessonsByCourse = await Lesson.aggregate([
       { $match: { courseId: { $in: courses.map(c => c._id) } } },
       { $group: { _id: "$courseId", count: { $sum: 1 } } }
     ]);
 
-    /** @type {{ [key: string]: number }} */
     const lessonCountMap = {};
     lessonsByCourse.forEach((l) => {
       lessonCountMap[l._id.toString()] = l.count;
@@ -32,25 +29,24 @@ router.get("/", requireAuth, async (req, res) => {
       description: c.description,
       category: c.category,
       lessons: lessonCountMap[c._id.toString()] || 0,
-      students: 0, // si luego quieres agregar alumnos
+      students: c.accessList ? c.accessList.map(u => u.email) : []
     }));
 
     res.json(formatted);
 
   } catch (err) {
+    console.error("Error getting courses:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-/* ===========================
-   GET /api/courses/:courseId
-=========================== */
 router.get("/:courseId", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id.toString();
     const { courseId } = req.params;
 
-    const course = await Course.findById(courseId);
+    const course = await Course.findById(courseId).populate('accessList', 'email name');
+    
     if (!course) return res.status(404).json({ message: "Course not found" });
 
     if (course.owner?.toString() !== userId) {
@@ -63,8 +59,10 @@ router.get("/:courseId", requireAuth, async (req, res) => {
       description: course.description,
       progress: course.progress,
       category: course.category,
+      students: course.accessList ? course.accessList.map(u => u.email) : []
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -97,19 +95,23 @@ router.get("/:courseId/lessons", requireAuth, async (req, res) => {
   }
 });
 
-/* ===========================
-   POST /api/courses
-=========================== */
 router.post("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const { title, description, accessList, category } = req.body;
+    const { title, description, accessList, category } = req.body; 
+
+    let initialStudents = [];
+
+    if (accessList && Array.isArray(accessList) && accessList.length > 0) {
+        const foundUsers = await User.find({ email: { $in: accessList } });
+        initialStudents = foundUsers.map(u => u._id);
+    }
 
     const newCourse = new Course({
       title,
       description,
       category,
-      accessList: accessList || [],
+      accessList: initialStudents,
       owner: userId,
     });
 
@@ -124,13 +126,11 @@ router.post("/", requireAuth, async (req, res) => {
       progress: newCourse.progress,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-/* ===========================
-   DELETE /api/courses/:id
-=========================== */
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id.toString();
@@ -138,19 +138,16 @@ router.delete("/:id", requireAuth, async (req, res) => {
 
     if (!course) return res.status(404).json({ message: "Not found" });
 
-    // permitir borrar cursos viejos sin owner
-    if (!course.owner) {
-      await course.deleteOne();
-      return res.json({ message: "Deleted" });
-    }
-
-    if (course.owner.toString() !== userId) {
+    if (course.owner && course.owner.toString() !== userId) {
       return res.status(403).json({ message: "Not allowed" });
     }
 
+    await Lesson.deleteMany({ courseId: course._id });
+
     await course.deleteOne();
-    res.json({ message: "Deleted" });
+    res.json({ message: "Deleted course and associated lessons" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -158,7 +155,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
 router.put("/:id", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id.toString();
-    const { title, description, category } = req.body;
+    const { title, description, category, students } = req.body; 
 
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: "Not found" });
@@ -167,11 +164,40 @@ router.put("/:id", requireAuth, async (req, res) => {
       return res.status(403).json({ message: "Not allowed" });
     }
 
+    let validUserIds = course.accessList; // Initially holds existing IDs
+
+    if (students && Array.isArray(students) && students.length > 0) {
+      const foundUsers = await User.find({ email: { $in: students } });
+      
+      // Check for missing emails
+      const foundEmails = foundUsers.map(u => u.email);
+      const missingEmails = students.filter(email => !foundEmails.includes(email));
+
+      if (missingEmails.length > 0) {
+          return res.status(400).json({ 
+              message: `No se encontraron usuarios con los siguientes correos: ${missingEmails.join(', ')}` 
+          });
+      }
+      
+
+      const newStudentIds = foundUsers.map(u => u._id.toString());
+      const existingIds = course.accessList.map(id => id.toString());
+
+      const mergedIds = new Set([...existingIds, ...newStudentIds]);
+      validUserIds = Array.from(mergedIds);
+    }
+
     course.title = title || course.title;
     course.description = description || course.description;
     course.category = category || course.category;
 
+    if (students) {
+        course.accessList = validUserIds; 
+    }
+
     await course.save();
+    
+    await course.populate('accessList', 'email name');
 
     res.json({
       id: course._id,
@@ -179,8 +205,11 @@ router.put("/:id", requireAuth, async (req, res) => {
       description: course.description,
       category: course.category,
       progress: course.progress,
+      students: course.accessList.map(u => u.email)
     });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 });

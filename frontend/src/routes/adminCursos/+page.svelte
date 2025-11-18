@@ -10,7 +10,7 @@
     name: string;
     description: string;
     level: string;
-    students: number;
+    students: string[];
     lessons: number;
     image?: string;
     color?: string;
@@ -70,10 +70,10 @@
       // Normaliza campos mínimos que usa la UI
       courses = list.map((c: any) => ({
         id: c.id,
-        name: c.title,          // cambiar a title
+        name: c.name,          // cambiar a title
         description: c.description || "",
         level: c.category,      // cambiar a category
-        students: 0,
+        students: c.students,
         lessons: c.lessons,
         image: "📚",
         color: "#3182ce",

@@ -18,6 +18,7 @@
     course.name = updated.title;
     course.description = updated.description;
     course.level = updated.category;
+    course.students = updated.students;
     dispatch('refresh');
   }
 </script>
@@ -41,7 +42,7 @@
     <div class="course-meta">
       <span class="badge {course.level}">{course.level}</span>
       <div class="stats">
-        <span>👥 {course.students} est.</span>
+        <span>👥 {course.students.length} est.</span>
         <span>📚 {course.lessons} lec.</span>
       </div>
     </div>
