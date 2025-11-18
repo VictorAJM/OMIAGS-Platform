@@ -116,11 +116,9 @@ router.put("/:id", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id.toString();
     const { title, description, category } = req.body;
-    
 
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ message: "Not found" });
-
 
     if (course.owner.toString() !== userId) {
       return res.status(403).json({ message: "Not allowed" });
@@ -137,7 +135,7 @@ router.put("/:id", requireAuth, async (req, res) => {
       title: course.title,
       description: course.description,
       category: course.category,
-      progress: course.progress
+      progress: course.progress,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
