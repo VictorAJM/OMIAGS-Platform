@@ -1,24 +1,24 @@
 import mongoose from "mongoose";
 
-const courseSchema = new mongoose.Schema({
+const quizAttemptSchema = new mongoose.Schema({
   // ID del quiz
-  quiz: {
+  quizId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Quiz",
     required: true
   },
 
-  // ID del curso al que pertenece el quiz
-  course: {
+  // ID del usuario
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Course",
+    ref: "User",
     required: true
   },
 
-  // ID del usuario
-  course: {
+  // ID del curso al que pertenece el quiz
+  courseId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "Course",
     required: true
   },
 
@@ -38,9 +38,10 @@ const courseSchema = new mongoose.Schema({
     default: 0
   },
 
-  selectedAnswsers: {
-    type: mongoose.Schema.Types.Mixed
+  answers: {
+    type: [mongoose.Schema.Types.Mixed],
+    default: []
   }
 });
 
-export default mongoose.model("Course", courseSchema);
+export default mongoose.model("QuizAttempt", quizAttemptSchema);

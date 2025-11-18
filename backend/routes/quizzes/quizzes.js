@@ -1,5 +1,7 @@
 import express from "express";
 import Quiz from "../../models/Quiz.js";
+import { requireAuth } from "../../../middleware/auth.js";
+import QuizAttempt from "../../models/QuizAttempt.js";
 
 const router = express.Router();
 
@@ -42,20 +44,25 @@ router.get("/list", async (req, res) => {
 });
 
 // GET /api/quizzes/:quizId
-router.get("/:quizId", async (req, res) => {
+router.get("/:quizId", requireAuth, async (req, res) => {
   try {
     const { quizId } = req.params;
 
     const quiz = await Quiz.findById(quizId);
-
     if (!quiz) {
       return res.status(404).json({ message: "Quiz not found" });
     }
+    
+    const quizAttempt = await QuizAttempt.findOne(
+      {userId: req.user._id, quizId: quizId}
+    )
 
     return res.json({
       id: quiz._id.toString(),
       title: quiz.title,
       description: quiz.description,
+      currentQuestion: (quizAttempt? quizAttempt.questionsAnswered : 0),
+      currentScore: (quizAttempt? quizAttempt.currentScore : 0),
       // Map over questions to remove the correct answer before sending to the client
       questions: quiz.questions.map((q) => ({
         _id: q._id,
@@ -102,7 +109,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.post("/submit-answer", async (req, res) => {
+router.post("/submit-answer", requireAuth, async (req, res) => {
   // We will need to add user data here and some validations to store progress and grades
   try {
     const { quizId, questionIndex, answer } = req.body;
@@ -117,9 +124,32 @@ router.post("/submit-answer", async (req, res) => {
     }
 
     const quiz = await Quiz.findById(quizId);
+
     if (quiz) {
+      let quizAttempt = await QuizAttempt.findOne(
+        {userId: req.user._id, quizId: quizId}
+      )
+
+      if(!quizAttempt){
+        quizAttempt = new QuizAttempt({
+          userId: req.user._id,
+          quizId: quizId,
+          courseId: quiz.courseId,
+          completed: false, // Initial status
+          questionsAnswered: 0,
+          currentScore: 0,
+          answers: []
+        });
+      }
+
       const question = quiz.questions[questionIndex];
       if (question) {
+        if(questionIndex !== quizAttempt.questionsAnswered){
+          return res.status(400).json({ message: "Question not allowed" })
+        }
+
+        quizAttempt.questionsAnswered++;
+
         let isCorrect = false;
         if (typeof answer === typeof question.correctAnswer) {
           if (typeof answer === String) {
@@ -132,10 +162,23 @@ router.post("/submit-answer", async (req, res) => {
           }
         }
 
-        return res.json({
+        if(isCorrect){
+          quizAttempt.currentScore++;
+        }
+
+        if(quizAttempt.questionsAnswered === quiz.questions.length){
+          quizAttempt.completed = true;
+        }
+
+        const answerObj = {
           correct: isCorrect,
           answer: question.correctAnswer,
-        });
+        }
+
+        quizAttempt.answers.push(answerObj);
+        await quizAttempt.save();
+
+        return res.json(answerObj);
       } else {
         return res.status(404).json({ message: "Question not found" });
       }

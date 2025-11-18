@@ -17,6 +17,7 @@
   let lastSubmission = null; // { isCorrect: boolean, correctAnswer: any } | null
 
   let correctAnswers = 0;
+  let auth_token;
 
   // --- Reactive Derived State ---
   $: quizId = $page.params.id;
@@ -35,13 +36,39 @@
   }
 
   onMount(async () => {
+    auth_token = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("session="))
+      ?.split("=")[1];
+
+    if (!auth_token) {
+      window.location.href = "/login";
+      return;
+    }
+
     try {
-      const res = await fetch(`http://localhost:5000/api/quizzes/${quizId}`);
+      const res = await fetch(
+        `http://localhost:5000/api/quizzes/${quizId}`,
+        {
+          headers: { Authorization: `Bearer ${auth_token}` },
+        }
+      );
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Failed to load the quiz.");
       }
       quizData = await res.json();
+      const totalQuestions = quizData.questions.length;
+      const questionsAnswered = quizData.currentQuestion;
+
+      if (questionsAnswered > 0 && questionsAnswered < totalQuestions) {
+        currentQuestionIndex = questionsAnswered;
+        correctAnswers = quizData.currentScore;
+      } else if (questionsAnswered === totalQuestions && totalQuestions > 0) {
+        quizStarted = true;
+        quizFinished = true;
+        correctAnswers = quizData.currentScore;
+      }
     } catch (err) {
       error = err.message;
     } finally {
@@ -82,7 +109,7 @@
     try {
       const response = await fetch('http://localhost:5000/api/quizzes/submit-answer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth_token}` },
         body: JSON.stringify(answerPayload),
       });
 
@@ -133,7 +160,13 @@
       <div class="quiz-card start-card">
         <h2>{quizData.title}</h2>
         <p class="description">{quizData.description || "Ready to test your knowledge?"}</p>
-        <button class="start-button" on:click={startQuiz}>Start Quiz</button>
+        <button class="start-button" on:click={startQuiz}>
+          {#if quizData.currentQuestion > 0 && quizData.currentQuestion < quizData.questions.length}
+            Continue Quiz
+          {:else}
+            Start Quiz
+          {/if}
+        </button>
       </div>
     {:else if quizFinished}
       <div class="quiz-card completion-card">
