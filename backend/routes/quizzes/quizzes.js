@@ -105,19 +105,20 @@ router.post("/", async (req, res) => {
 router.post("/submit-answer", async (req, res) => {
   // We will need to add user data here and some validations to store progress and grades
   try {
-    const { quizId, questionId, answer } = req.body;
+    const { quizId, questionIndex, answer } = req.body;
 
     // Basic validation to ensure required fields are present
-    if (!quizId || !questionId || !answer) {
+    if (quizId === null || questionIndex === null || answer == null) {
+      console.log(quizId)
       return res.status(400).json({
         message:
-          "Missing required fields: quizId, questionId and answer are required.",
+          "Missing required fields: quizId, questionIndex and answer are required.",
       });
     }
 
     const quiz = await Quiz.findById(quizId);
     if (quiz) {
-      const question = quiz.questions.id(questionId);
+      const question = quiz.questions[questionIndex];
       if (question) {
         let isCorrect = false;
         if (typeof answer === typeof question.correctAnswer) {

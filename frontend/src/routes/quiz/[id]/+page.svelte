@@ -75,7 +75,7 @@
 
     const answerPayload = {
       quizId: quizData.id,
-      questionId: currentQuestion._id,
+      questionIndex: currentQuestionIndex,
       answer: selectedAnswer
     };
     
