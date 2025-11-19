@@ -61,6 +61,21 @@
       },
     };
   }
+
+  function handlePointsChange() {
+    if (question.value === undefined || question.value === null) return;
+
+    // Enforce max value of 100
+    if (question.value > 100) {
+      question.value = 100;
+    }
+    // Enforce min value of 0
+    if (question.value < 0) {
+      question.value = 0;
+    }
+    // Round to 2 decimal places
+    question.value = Math.round(question.value * 100) / 100;
+  }
 </script>
 
 <div class="question-editor-card">
@@ -73,7 +88,10 @@
           id="points-{index}"
           type="number"
           min="0"
+          max="100"
+          step="0.01"
           bind:value={question.value}
+          on:change={handlePointsChange}
           class="points-input"
         />
       </div>

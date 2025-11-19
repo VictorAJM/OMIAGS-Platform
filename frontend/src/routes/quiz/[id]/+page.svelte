@@ -17,6 +17,7 @@
   let lastSubmission = null; // { isCorrect: boolean, correctAnswer: any } | null
 
   let correctAnswers = 0;
+  let finalScore = 0;
   let auth_token;
 
   // --- Reactive Derived State ---
@@ -71,7 +72,7 @@
       } else if (questionsAnswered === totalQuestions && totalQuestions > 0) {
         quizStarted = true;
         quizFinished = true;
-        correctAnswers = quizData.currentScore;
+        await fetchFinalScore();
       }
     } catch (err) {
       error = err.message;
@@ -146,11 +147,29 @@
     }
   }
 
-  function handleNext() {
+  async function fetchFinalScore() {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/quizzes/quiz-score?quizId=${quizId}`,
+        {
+          headers: { Authorization: `Bearer ${auth_token}` },
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        finalScore = data.score;
+      }
+    } catch (err) {
+      console.error("Error fetching score:", err);
+    }
+  }
+
+  async function handleNext() {
     if (currentQuestionIndex < quizData.questions.length - 1) {
       currentQuestionIndex++;
     } else {
       quizFinished = true;
+      await fetchFinalScore();
     }
     // Reset for the next question
     answerState = "idle";
@@ -183,13 +202,9 @@
     {:else if quizFinished}
       <div class="quiz-card completion-card">
         <h2>Quiz Results</h2>
-        <ScoreCircle
-          score={Math.round((correctAnswers / quizData.questions.length) * 100)}
-          class="centered-score-circle"
-        />
+        <ScoreCircle score={finalScore} class="centered-score-circle" />
         <p>
-          You answered {correctAnswers} out of {quizData.questions.length} questions
-          correctly.
+          You scored {finalScore}% on this quiz.
         </p>
         <a href="/" class="back-button">Back to Home</a>
       </div>

@@ -1,7 +1,7 @@
 <script>
-  import { onMount } from 'svelte';
-  import { tweened } from 'svelte/motion';
-  import { cubicOut } from 'svelte/easing';
+  import { onMount } from "svelte";
+  import { tweened } from "svelte/motion";
+  import { cubicOut } from "svelte/easing";
 
   export let score = 0; // The final score (0-100)
 
@@ -15,13 +15,15 @@
     easing: cubicOut,
   });
 
-  onMount(() => {
-    animatedScore.set(score);
-  });
+  $: animatedScore.set(score);
 
   $: strokeDashoffset = circumference * (1 - $animatedScore / 100);
   $: scoreColor =
-    $animatedScore < 50 ? '#d93025' : $animatedScore < 80 ? '#fbbc05' : '#1e8e3e';
+    $animatedScore < 50
+      ? "#d93025"
+      : $animatedScore < 80
+        ? "#fbbc05"
+        : "#1e8e3e";
 </script>
 
 <div class="score-container" style="--score-color: {scoreColor};">
