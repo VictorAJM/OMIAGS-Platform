@@ -64,8 +64,8 @@ router.get("/quiz-score", requireAuth, async (req, res) => {
     }
 
     const quizAttempt = await QuizAttempt.findOne({
-      userId: userId,
-      quizId: quizId,
+      userId,
+      quizId,
     });
 
     let status = "Not attempted";
@@ -89,7 +89,7 @@ router.get("/quiz-score", requireAuth, async (req, res) => {
 // GET /api/quizzes/attemts
 // Returns the number of users that have attempted the given quiz
 router.get("/attempts", requireAuth, async (req, res) => {
-  let { quizId } = req.query;
+  const { quizId } = req.query;
 
   if (req.user.role !== "admin") {
     return res
@@ -123,11 +123,6 @@ router.get("/:quizId", requireAuth, async (req, res) => {
       userId: req.user._id,
       quizId: quizId,
     });
-
-    const currentAttempts =
-      req.user.role === "admin"
-        ? await QuizAttempt.countDocuments({ quizId })
-        : 0;
 
     return res.json({
       id: quiz._id.toString(),
@@ -268,7 +263,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-                JSON.stringify([...question.correctAnswer].sort());
+              JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
@@ -279,7 +274,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
         const answerObj = {
           correct: isCorrect,
           score: isCorrect ? question.value : 0,
-          answer: answer,
+          answer,
         };
 
         quizAttempt.answers.push(answerObj);

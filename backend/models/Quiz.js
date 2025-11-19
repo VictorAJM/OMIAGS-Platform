@@ -80,13 +80,13 @@ const quizSchema = new mongoose.Schema(
   },
 );
 
-quizSchema.pre("save", async function (next) {
+quizSchema.pre("save", function (next) {
   if (!this.isModified("questions")) return next();
   this.maxScore = this.questions.reduce(
     (total, question) => total + question.value,
     0,
   );
-  next();
+  return next();
 });
 
 export default mongoose.model("Quiz", quizSchema);
