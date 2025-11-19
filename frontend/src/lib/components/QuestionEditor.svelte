@@ -1,6 +1,13 @@
 <script>
   import { createEventDispatcher } from "svelte";
+  /**
+   * @type {{ options: any[]; type: string; correctAnswer: string | any[]; title: any; code: any; value?: number; }}
+   */
   export let question;
+
+  $: if (question && question.value === undefined) {
+    question.value = 1;
+  }
   export let index;
 
   const dispatch = createEventDispatcher();
@@ -12,11 +19,17 @@
     question.options = [...question.options, "New option"];
   }
 
+  /**
+   * @param {number} optionIndex
+   */
   function removeOption(optionIndex) {
     question.options.splice(optionIndex, 1);
     question.options = question.options;
   }
 
+  /**
+   * @param {string | any[]} option
+   */
   function setCorrectAnswer(option) {
     if (question.type === "multiple-answer") {
       if (!question.correctAnswer) {
@@ -29,75 +42,183 @@
         question.correctAnswer.push(option);
       }
       question.correctAnswer = question.correctAnswer;
-    } else {
       question.correctAnswer = option;
     }
+  }
+  function resize(node) {
+    const handleInput = () => {
+      node.style.height = "auto";
+      node.style.height = node.scrollHeight + 5 + "px";
+    };
+    node.addEventListener("input", handleInput);
+    // Initial resize
+    setTimeout(handleInput, 0);
+
+    return {
+      destroy() {
+        node.removeEventListener("input", handleInput);
+      },
+    };
+  }
+
+  function handlePointsChange() {
+    if (question.value === undefined || question.value === null) return;
+
+    // Enforce max value of 100
+    if (question.value > 100) {
+      question.value = 100;
+    }
+    // Enforce min value of 0
+    if (question.value < 0) {
+      question.value = 0;
+    }
+    // Round to 2 decimal places
+    question.value = Math.round(question.value * 100) / 100;
   }
 </script>
 
 <div class="question-editor-card">
   <div class="question-header">
-    <span class="question-number">Question {index + 1}</span>
-    <button class="remove-question-btn" on:click={() => dispatch('remove')}>Remove</button>
+    <div class="question-title-group">
+      <span class="question-number">Question {index + 1}</span>
+      <div class="points-input-wrapper">
+        <label for="points-{index}">Points:</label>
+        <input
+          id="points-{index}"
+          type="number"
+          min="0"
+          max="100"
+          step="0.01"
+          bind:value={question.value}
+          on:change={handlePointsChange}
+          class="points-input"
+        />
+      </div>
+    </div>
+    <button class="remove-question-btn" on:click={() => dispatch("remove")}
+      >Remove</button
+    >
   </div>
 
-  <input type="text" bind:value={question.title} placeholder="Question Title" class="question-title-input" />
+  <textarea
+    use:resize
+    bind:value={question.title}
+    placeholder="Question Title"
+    class="question-title-input"
+    rows="1"
+    draggable="false"
+    on:mousedown|stopPropagation
+  ></textarea>
 
   <div class="answer-area">
     {#if question.type === "multiple-choice"}
       {#each question.options as option, i}
         <div class="option-editor">
-            <label class="custom-radio">
-                <input type="radio" name="correct-answer-{index}" checked={question.correctAnswer === option} on:change={() => setCorrectAnswer(option)} />
-                <span class="radio-checkmark"></span>
-            </label>
-          <input type="text" bind:value={question.options[i]} class="option-input" />
-          <button on:click={() => removeOption(i)} class="remove-option-btn">X</button>
+          <label class="custom-radio">
+            <input
+              type="radio"
+              name="correct-answer-{index}"
+              checked={question.correctAnswer === option}
+              on:change={() => setCorrectAnswer(option)}
+            />
+            <span class="radio-checkmark"></span>
+          </label>
+          <input
+            type="text"
+            bind:value={question.options[i]}
+            class="option-input"
+          />
+          <button on:click={() => removeOption(i)} class="remove-option-btn"
+            >X</button
+          >
         </div>
       {/each}
       <button on:click={addOption} class="add-option-btn">Add Option</button>
     {:else if question.type === "true-false"}
       <div class="option-editor">
         <label class="custom-radio">
-            <input type="radio" name="correct-answer-{index}" value="True" checked={question.correctAnswer === "True"} on:change={() => setCorrectAnswer("True")} />
-            <span class="radio-checkmark"></span>
-             True
+          <input
+            type="radio"
+            name="correct-answer-{index}"
+            value="True"
+            checked={question.correctAnswer === "True"}
+            on:change={() => setCorrectAnswer("True")}
+          />
+          <span class="radio-checkmark"></span>
+          True
         </label>
       </div>
       <div class="option-editor">
         <label class="custom-radio">
-            <input type="radio" name="correct-answer-{index}" value="False" checked={question.correctAnswer === "False"} on:change={() => setCorrectAnswer("False")} />
-            <span class="radio-checkmark"></span>
-             False
+          <input
+            type="radio"
+            name="correct-answer-{index}"
+            value="False"
+            checked={question.correctAnswer === "False"}
+            on:change={() => setCorrectAnswer("False")}
+          />
+          <span class="radio-checkmark"></span>
+          False
         </label>
       </div>
     {:else if question.type === "multiple-answer"}
-        {#each question.options as option, i}
-            <div class="option-editor">
-                <label class="custom-checkbox">
-                    <input type="checkbox" checked={question.correctAnswer?.includes(option)} on:change={() => setCorrectAnswer(option)} />
-                    <span class="checkbox-checkmark"></span>
-                </label>
-                <input type="text" bind:value={question.options[i]} class="option-input" />
-                <button on:click={() => removeOption(i)} class="remove-option-btn">X</button>
-            </div>
-        {/each}
-        <button on:click={addOption} class="add-option-btn">Add Option</button>
+      {#each question.options as option, i}
+        <div class="option-editor">
+          <label class="custom-checkbox">
+            <input
+              type="checkbox"
+              checked={question.correctAnswer?.includes(option)}
+              on:change={() => setCorrectAnswer(option)}
+            />
+            <span class="checkbox-checkmark"></span>
+          </label>
+          <input
+            type="text"
+            bind:value={question.options[i]}
+            class="option-input"
+          />
+          <button on:click={() => removeOption(i)} class="remove-option-btn"
+            >X</button
+          >
+        </div>
+      {/each}
+      <button on:click={addOption} class="add-option-btn">Add Option</button>
     {:else if question.type === "fill-in-the-blank"}
-      <input type="text" bind:value={question.correctAnswer} placeholder="Correct Answer" class="fill-in-blank-input" />
+      <input
+        type="text"
+        bind:value={question.correctAnswer}
+        placeholder="Correct Answer"
+        class="fill-in-blank-input"
+      />
     {:else if question.type === "complete-the-code"}
-        <textarea bind:value={question.code} class="code-input" placeholder="Enter code with [blank] for the blank space"></textarea>
-        {#each question.options as option, i}
-            <div class="option-editor">
-                <label class="custom-radio">
-                    <input type="radio" name="correct-answer-{index}" checked={question.correctAnswer === option} on:change={() => setCorrectAnswer(option)} />
-                    <span class="radio-checkmark"></span>
-                </label>
-                <input type="text" bind:value={question.options[i]} class="option-input" />
-                <button on:click={() => removeOption(i)} class="remove-option-btn">X</button>
-            </div>
-        {/each}
-        <button on:click={addOption} class="add-option-btn">Add Option</button>
+      <textarea
+        use:resize
+        bind:value={question.code}
+        class="code-input"
+        placeholder="Enter code with [blank] for the blank space"
+      ></textarea>
+      {#each question.options as option, i}
+        <div class="option-editor">
+          <label class="custom-radio">
+            <input
+              type="radio"
+              name="correct-answer-{index}"
+              checked={question.correctAnswer === option}
+              on:change={() => setCorrectAnswer(option)}
+            />
+            <span class="radio-checkmark"></span>
+          </label>
+          <input
+            type="text"
+            bind:value={question.options[i]}
+            class="option-input"
+          />
+          <button on:click={() => removeOption(i)} class="remove-option-btn"
+            >X</button
+          >
+        </div>
+      {/each}
+      <button on:click={addOption} class="add-option-btn">Add Option</button>
     {/if}
   </div>
 </div>
@@ -114,8 +235,32 @@
   .question-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 1rem;
+  }
+  .question-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .points-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #555;
+  }
+  .points-input {
+    width: 70px;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+  }
+  .points-input:focus {
+    outline: none;
+    border-color: #1a73e8;
   }
   .question-number {
     font-weight: 500;
@@ -135,6 +280,15 @@
     border: none;
     border-bottom: 2px solid #ddd;
     margin-bottom: 1rem;
+    resize: none; /* Handled by JS */
+    font-family: inherit;
+    overflow: hidden;
+    display: block;
+    box-sizing: border-box;
+  }
+  .question-title-input:focus {
+    outline: none;
+    border-color: #1a73e8;
   }
   .option-editor {
     display: flex;
@@ -183,7 +337,7 @@
     padding: 1rem;
     border-radius: 8px;
     border: 2px solid #44475a;
-    font-family: 'Fira Code', 'Courier New', Courier, monospace;
+    font-family: "Fira Code", "Courier New", Courier, monospace;
     font-size: 0.95rem;
     line-height: 1.6;
     transition: border-color 0.2s;
@@ -195,73 +349,77 @@
     border-color: #6272a4;
   }
 
-/* Custom Checkbox and Radio Styles */
-.custom-radio, .custom-checkbox {
+  /* Custom Checkbox and Radio Styles */
+  .custom-radio,
+  .custom-checkbox {
     display: flex;
     align-items: center;
     cursor: pointer;
     font-size: 1rem;
     gap: 0.5rem;
-}
+  }
 
-.custom-radio input, .custom-checkbox input {
+  .custom-radio input,
+  .custom-checkbox input {
     opacity: 0;
     width: 0;
     height: 0;
-}
+  }
 
-.radio-checkmark, .checkbox-checkmark {
+  .radio-checkmark,
+  .checkbox-checkmark {
     position: relative;
     height: 22px;
     width: 22px;
     background-color: #fff;
     border: 2px solid #ccc;
     transition: all 0.2s;
-}
+  }
 
-.radio-checkmark {
+  .radio-checkmark {
     border-radius: 50%;
-}
+  }
 
-.checkbox-checkmark {
+  .checkbox-checkmark {
     border-radius: 4px;
-}
+  }
 
-.custom-radio:hover input ~ .radio-checkmark,
-.custom-checkbox:hover input ~ .checkbox-checkmark {
-    border-color: #4CAF50; /* Green */
-}
+  .custom-radio:hover input ~ .radio-checkmark,
+  .custom-checkbox:hover input ~ .checkbox-checkmark {
+    border-color: #4caf50; /* Green */
+  }
 
-.custom-radio input:checked ~ .radio-checkmark,
-.custom-checkbox input:checked ~ .checkbox-checkmark {
-    background-color: #4CAF50;
-    border-color: #4CAF50;
-}
+  .custom-radio input:checked ~ .radio-checkmark,
+  .custom-checkbox input:checked ~ .checkbox-checkmark {
+    background-color: #4caf50;
+    border-color: #4caf50;
+  }
 
-.radio-checkmark:after, .checkbox-checkmark:after {
+  .radio-checkmark:after,
+  .checkbox-checkmark:after {
     content: "";
     position: absolute;
     display: none;
-}
+  }
 
-.custom-radio input:checked ~ .radio-checkmark:after,
-.custom-checkbox input:checked ~ .checkbox-checkmark:after {
+  .custom-radio input:checked ~ .radio-checkmark:after,
+  .custom-checkbox input:checked ~ .checkbox-checkmark:after {
     display: block;
-}
+  }
 
-/* Style for radio checkmark */
-.custom-radio .radio-checkmark:after {
+  /* Style for radio checkmark */
+  .custom-radio .radio-checkmark:after {
     top: 50%;
-    left: 50% ;
+    left: 50%;
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: white;
     transform: translate(-46%, -46%);
-}
+  }
 
-/* Style for checkbox checkmark */
-.custom-checkbox .checkbox-checkmark:after {
+  /* Style for checkbox checkmark */
+  .custom-checkbox .checkbox-checkmark:after {
     left: 7px;
     top: 3px;
     width: 5px;
@@ -269,5 +427,5 @@
     border: solid white;
     border-width: 0 3px 3px 0;
     transform: rotate(45deg);
-}
+  }
 </style>

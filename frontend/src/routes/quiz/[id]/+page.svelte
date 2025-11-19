@@ -1,6 +1,6 @@
 <script>
   import NavBar from "../../../lib/components/NavBar.svelte";
-  import ScoreCircle from '../../../lib/components/ScoreCircle.svelte';
+  import ScoreCircle from "../../../lib/components/ScoreCircle.svelte";
   import { onMount } from "svelte";
   import { page } from "$app/stores";
 
@@ -12,26 +12,33 @@
   let quizStarted = false;
   let selectedAnswer = null;
   let quizFinished = false;
-  
-  let answerState = 'idle'; // 'idle', 'checking', 'checked'
+
+  let answerState = "idle"; // 'idle', 'checking', 'checked'
   let lastSubmission = null; // { isCorrect: boolean, correctAnswer: any } | null
 
   let correctAnswers = 0;
+  let finalScore = 0;
   let auth_token;
 
   // --- Reactive Derived State ---
   $: quizId = $page.params.id;
-  $: currentQuestion = quizData ? quizData.questions[currentQuestionIndex] : null;
-  $: progress = quizData ? ((currentQuestionIndex + (answerState === 'checked'? 1: 0)) / quizData.questions.length) * 100 : 0;
+  $: currentQuestion = quizData
+    ? quizData.questions[currentQuestionIndex]
+    : null;
+  $: progress = quizData
+    ? ((currentQuestionIndex + (answerState === "checked" ? 1 : 0)) /
+        quizData.questions.length) *
+      100
+    : 0;
 
   // Reset selectedAnswer when the question changes
   $: {
     if (currentQuestion) {
-        if (currentQuestion.type === 'multiple-answer') {
-            selectedAnswer = [];
-        } else {
-            selectedAnswer = null;
-        }
+      if (currentQuestion.type === "multiple-answer") {
+        selectedAnswer = [];
+      } else {
+        selectedAnswer = null;
+      }
     }
   }
 
@@ -47,17 +54,15 @@
     }
 
     try {
-      const res = await fetch(
-        `http://localhost:5000/api/quizzes/${quizId}`,
-        {
-          headers: { Authorization: `Bearer ${auth_token}` },
-        }
-      );
+      const res = await fetch(`http://localhost:5000/api/quizzes/${quizId}`, {
+        headers: { Authorization: `Bearer ${auth_token}` },
+      });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Failed to load the quiz.");
       }
       quizData = await res.json();
+      console.log(quizData);
       const totalQuestions = quizData.questions.length;
       const questionsAnswered = quizData.currentQuestion;
 
@@ -67,7 +72,7 @@
       } else if (questionsAnswered === totalQuestions && totalQuestions > 0) {
         quizStarted = true;
         quizFinished = true;
-        correctAnswers = quizData.currentScore;
+        await fetchFinalScore();
       }
     } catch (err) {
       error = err.message;
@@ -81,9 +86,9 @@
   }
 
   function handleSelectOption(option) {
-    if (answerState !== 'idle') return; // Don't allow changes after submission
+    if (answerState !== "idle") return; // Don't allow changes after submission
 
-    if (currentQuestion.type === 'multiple-answer') {
+    if (currentQuestion.type === "multiple-answer") {
       const currentSelection = selectedAnswer || [];
       const index = currentSelection.indexOf(option);
       if (index > -1) {
@@ -97,53 +102,77 @@
   }
 
   async function handleSubmit() {
-    if (answerState === 'checking') return;
-    answerState = 'checking';
+    if (answerState === "checking") return;
+    answerState = "checking";
 
     const answerPayload = {
       quizId: quizData.id,
       questionIndex: currentQuestionIndex,
-      answer: selectedAnswer
+      answer: selectedAnswer,
     };
-    
+
     try {
-      const response = await fetch('http://localhost:5000/api/quizzes/submit-answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth_token}` },
-        body: JSON.stringify(answerPayload),
-      });
+      const response = await fetch(
+        "http://localhost:5000/api/quizzes/submit-answer",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth_token}`,
+          },
+          body: JSON.stringify(answerPayload),
+        },
+      );
 
       if (response.ok) {
         const responseData = await response.json();
         lastSubmission = {
           isCorrect: responseData.correct,
-          correctAnswer: responseData.answer
+          correctAnswer: responseData.answer,
         };
 
-        if(lastSubmission.isCorrect){
+        if (lastSubmission.isCorrect) {
           correctAnswers++;
         }
-        
-        answerState = 'checked';
+
+        answerState = "checked";
       } else {
         const errorData = await response.json();
-        error = errorData.message || 'Failed to submit answer.';
-        answerState = 'idle';
+        error = errorData.message || "Failed to submit answer.";
+        answerState = "idle";
       }
     } catch (err) {
       error = err.message;
-      answerState = 'idle';
+      answerState = "idle";
     }
   }
 
-  function handleNext() {
+  async function fetchFinalScore() {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/quizzes/quiz-score?quizId=${quizId}`,
+        {
+          headers: { Authorization: `Bearer ${auth_token}` },
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        finalScore = data.score;
+      }
+    } catch (err) {
+      console.error("Error fetching score:", err);
+    }
+  }
+
+  async function handleNext() {
     if (currentQuestionIndex < quizData.questions.length - 1) {
       currentQuestionIndex++;
     } else {
       quizFinished = true;
+      await fetchFinalScore();
     }
     // Reset for the next question
-    answerState = 'idle';
+    answerState = "idle";
     lastSubmission = null;
   }
 </script>
@@ -159,7 +188,9 @@
     {#if !quizStarted}
       <div class="quiz-card start-card">
         <h2>{quizData.title}</h2>
-        <p class="description">{quizData.description || "Ready to test your knowledge?"}</p>
+        <p class="description">
+          {quizData.description || "Ready to test your knowledge?"}
+        </p>
         <button class="start-button" on:click={startQuiz}>
           {#if quizData.currentQuestion > 0 && quizData.currentQuestion < quizData.questions.length}
             Continue Quiz
@@ -171,15 +202,23 @@
     {:else if quizFinished}
       <div class="quiz-card completion-card">
         <h2>Quiz Results</h2>
-        <ScoreCircle score={Math.round((correctAnswers / quizData.questions.length) * 100)} class="centered-score-circle" />
-        <p>You answered {correctAnswers} out of {quizData.questions.length} questions correctly.</p>
+        <ScoreCircle score={finalScore} class="centered-score-circle" />
+        <p>
+          You scored {finalScore}% on this quiz.
+        </p>
         <a href="/" class="back-button">Back to Home</a>
       </div>
     {:else if currentQuestion}
       <div class="quiz-card">
         <!-- Progress Bar -->
         <div class="progress-container">
-          <span class="progress-text">Question {currentQuestionIndex + 1} of {quizData.questions.length}</span>
+          <div class="progress-info">
+            <span class="progress-text"
+              >Question {currentQuestionIndex + 1} of {quizData.questions
+                .length}</span
+            >
+            <span class="points-text">{currentQuestion.value || 1} pts</span>
+          </div>
           <div class="progress-bar">
             <div class="progress-bar-fill" style="width: {progress}%" />
           </div>
@@ -192,51 +231,71 @@
 
         <!-- Answers -->
         <div class="answer-area">
-          {#if currentQuestion.type === 'multiple-choice'}
+          {#if currentQuestion.type === "multiple-choice"}
             {#each currentQuestion.options as option}
-              <button 
-                class="answer-option" 
-                class:selected={selectedAnswer === option} 
+              <button
+                class="answer-option"
+                class:selected={selectedAnswer === option}
                 on:click={() => handleSelectOption(option)}
-                disabled={answerState !== 'idle'}
+                disabled={answerState !== "idle"}
               >
                 {option}
               </button>
             {/each}
-          {:else if currentQuestion.type === 'true-false'}
-            <button class="answer-option" class:selected={selectedAnswer === 'True'} on:click={() => handleSelectOption('True')} disabled={answerState !== 'idle'}>
+          {:else if currentQuestion.type === "true-false"}
+            <button
+              class="answer-option"
+              class:selected={selectedAnswer === "True"}
+              on:click={() => handleSelectOption("True")}
+              disabled={answerState !== "idle"}
+            >
               True
             </button>
-            <button class="answer-option" class:selected={selectedAnswer === 'False'} on:click={() => handleSelectOption('False')} disabled={answerState !== 'idle'}>
+            <button
+              class="answer-option"
+              class:selected={selectedAnswer === "False"}
+              on:click={() => handleSelectOption("False")}
+              disabled={answerState !== "idle"}
+            >
               False
             </button>
-          {:else if currentQuestion.type === 'multiple-answer'}
+          {:else if currentQuestion.type === "multiple-answer"}
             {#each currentQuestion.options as option}
-              <button 
-                class="answer-option" 
-                class:selected={selectedAnswer?.includes(option)} 
+              <button
+                class="answer-option"
+                class:selected={selectedAnswer?.includes(option)}
                 on:click={() => handleSelectOption(option)}
-                disabled={answerState !== 'idle'}
+                disabled={answerState !== "idle"}
               >
                 {option}
               </button>
             {/each}
-          {:else if currentQuestion.type === 'fill-in-the-blank'}
-            <input type="text" class="fill-in-blank-input" placeholder="Type your answer here..." bind:value={selectedAnswer} disabled={answerState !== 'idle'} />
-          {:else if currentQuestion.type === 'complete-the-code'}
-            {@const codeParts = currentQuestion.code.split('[blank]')}
+          {:else if currentQuestion.type === "fill-in-the-blank"}
+            <input
+              type="text"
+              class="fill-in-blank-input"
+              placeholder="Type your answer here..."
+              bind:value={selectedAnswer}
+              disabled={answerState !== "idle"}
+            />
+          {:else if currentQuestion.type === "complete-the-code"}
+            {@const codeParts = currentQuestion.code.split("[blank]")}
             <div class="code-question-container">
               <div class="code-block">
-                <pre><code>{codeParts[0]}<span class="code-blank">{selectedAnswer || '...'}</span>{codeParts[1]}</code></pre>
+                <pre><code
+                    >{codeParts[0]}<span class="code-blank"
+                      >{selectedAnswer || "..."}</span
+                    >{codeParts[1]}</code
+                  ></pre>
               </div>
             </div>
 
             {#each currentQuestion.options as option}
-              <button 
-                class="answer-option" 
-                class:selected={selectedAnswer === option} 
+              <button
+                class="answer-option"
+                class:selected={selectedAnswer === option}
                 on:click={() => handleSelectOption(option)}
-                disabled={answerState !== 'idle'}
+                disabled={answerState !== "idle"}
               >
                 {option}
               </button>
@@ -246,9 +305,15 @@
 
         <!-- Navigation -->
         <div class="navigation-area">
-          {#if answerState !== 'checked'}
-            <button on:click={handleSubmit} disabled={!selectedAnswer || (Array.isArray(selectedAnswer) && selectedAnswer.length === 0) || answerState === 'checking'}>
-              {#if answerState === 'checking'}
+          {#if answerState !== "checked"}
+            <button
+              on:click={handleSubmit}
+              disabled={!selectedAnswer ||
+                (Array.isArray(selectedAnswer) &&
+                  selectedAnswer.length === 0) ||
+                answerState === "checking"}
+            >
+              {#if answerState === "checking"}
                 Checking...
               {:else}
                 Submit
@@ -259,8 +324,12 @@
       </div>
 
       <!-- Feedback Panel -->
-      {#if answerState === 'checked' && lastSubmission}
-        <div class="feedback-container" class:correct={lastSubmission.isCorrect} class:incorrect={!lastSubmission.isCorrect}>
+      {#if answerState === "checked" && lastSubmission}
+        <div
+          class="feedback-container"
+          class:correct={lastSubmission.isCorrect}
+          class:incorrect={!lastSubmission.isCorrect}
+        >
           <div class="feedback-content">
             <div class="feedback-header">
               {#if lastSubmission.isCorrect}
@@ -269,15 +338,28 @@
               {:else}
                 <span class="feedback-icon">❌</span>
                 <div>
-                  <h2>Wrong Answer! </h2>
+                  <h2>Wrong Answer!</h2>
                   {#if !lastSubmission.isCorrect}
-                    <p class="correct-answer-info">The correct answer is: <strong>{Array.isArray(lastSubmission.correctAnswer) ? lastSubmission.correctAnswer.join(', ') : lastSubmission.correctAnswer}</strong></p>
+                    <p class="correct-answer-info">
+                      The correct answer is: <strong
+                        >{Array.isArray(lastSubmission.correctAnswer)
+                          ? lastSubmission.correctAnswer.join(", ")
+                          : lastSubmission.correctAnswer}</strong
+                      >
+                    </p>
                   {/if}
                 </div>
               {/if}
             </div>
-            <button on:click={handleNext} class="feedback-continue-btn {lastSubmission.isCorrect ? 'correct' : 'incorrect'}">
-              {currentQuestionIndex === quizData.questions.length - 1 ? 'Finish Quiz' : 'Continue'}
+            <button
+              on:click={handleNext}
+              class="feedback-continue-btn {lastSubmission.isCorrect
+                ? 'correct'
+                : 'incorrect'}"
+            >
+              {currentQuestionIndex === quizData.questions.length - 1
+                ? "Finish Quiz"
+                : "Continue"}
             </button>
           </div>
         </div>
@@ -318,11 +400,20 @@
   .progress-container {
     width: 100%;
   }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
   .progress-text {
     font-size: 0.9rem;
     color: #5f6368;
-    margin-bottom: 0.5rem;
-    text-align: center;
+  }
+  .points-text {
+    font-size: 0.9rem;
+    color: #5f6368;
+    font-weight: 500;
   }
   .progress-bar {
     width: 100%;
@@ -417,11 +508,13 @@
     width: 95%;
     margin: -1rem auto 0;
     box-sizing: border-box;
-    font-family: 'Fira Code', 'Courier New', Courier, monospace;
+    font-family: "Fira Code", "Courier New", Courier, monospace;
     white-space: pre-wrap;
     text-align: left;
   }
-  .code-block pre { margin: 0; }
+  .code-block pre {
+    margin: 0;
+  }
   .code-blank {
     display: inline-block;
     background-color: #44475a;
@@ -459,11 +552,15 @@
   }
 
   /* --- Start & Completion States --- */
-  .start-card, .completion-card {
+  .start-card,
+  .completion-card {
     text-align: center;
     gap: 1.5rem;
   }
-  .start-card h2 { font-size: 2rem; color: #2d3748; }
+  .start-card h2 {
+    font-size: 2rem;
+    color: #2d3748;
+  }
   .start-card .description {
     font-size: 1.1rem;
     color: #4a5568;
@@ -482,7 +579,9 @@
     transition: background-color 0.2s ease;
     margin-top: 1rem;
   }
-  .start-button:hover { background-color: #c53030; }
+  .start-button:hover {
+    background-color: #c53030;
+  }
   .completion-card h2 {
     font-size: 2rem;
     color: #2d3748;
@@ -512,16 +611,24 @@
     background-color: #fff;
     border-top: 2px solid;
     padding: 1rem 2rem;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
     animation: slideUp 0.3s ease-out;
     z-index: 100;
   }
-  .feedback-container.correct { border-color: #1e8e3e; }
-  .feedback-container.incorrect { border-color: #d93025; }
+  .feedback-container.correct {
+    border-color: #1e8e3e;
+  }
+  .feedback-container.incorrect {
+    border-color: #d93025;
+  }
 
   @keyframes slideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
   }
 
   .feedback-content {
@@ -543,16 +650,24 @@
     font-size: 1.5rem;
     font-weight: 600;
   }
-  .feedback-container.correct .feedback-header h2 { color: #1e8e3e; }
-  .feedback-container.incorrect .feedback-header h2 { color: #d93025; }
-  .feedback-icon { font-size: 1.5rem; }
+  .feedback-container.correct .feedback-header h2 {
+    color: #1e8e3e;
+  }
+  .feedback-container.incorrect .feedback-header h2 {
+    color: #d93025;
+  }
+  .feedback-icon {
+    font-size: 1.5rem;
+  }
 
   .correct-answer-info {
     margin: 0;
     font-size: 1rem;
     color: #5f6368;
   }
-  .correct-answer-info strong { color: #202124; }
+  .correct-answer-info strong {
+    color: #202124;
+  }
 
   .feedback-continue-btn {
     border: none;
@@ -565,8 +680,16 @@
     flex-shrink: 0;
     transition: background-color 0.2s;
   }
-  .feedback-continue-btn.correct { background-color: #1e8e3e; }
-  .feedback-continue-btn.correct:hover { background-color: #1a7a34; }
-  .feedback-continue-btn.incorrect { background-color: #d93025; }
-  .feedback-continue-btn.incorrect:hover { background-color: #b5281f; }
+  .feedback-continue-btn.correct {
+    background-color: #1e8e3e;
+  }
+  .feedback-continue-btn.correct:hover {
+    background-color: #1a7a34;
+  }
+  .feedback-continue-btn.incorrect {
+    background-color: #d93025;
+  }
+  .feedback-continue-btn.incorrect:hover {
+    background-color: #b5281f;
+  }
 </style>

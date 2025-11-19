@@ -66,6 +66,11 @@ const quizSchema = new mongoose.Schema(
       ref: "Course",
       required: true,
     },
+    // Maximum score for the quiz.
+    maxScore: {
+      type: Number,
+      default: 0,
+    },
     // An array of questions, each following the questionSchema structure.
     questions: [questionSchema],
   },
@@ -74,5 +79,14 @@ const quizSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+quizSchema.pre("save", function (next) {
+  if (!this.isModified("questions")) return next();
+  this.maxScore = this.questions.reduce(
+    (total, question) => total + question.value,
+    0,
+  );
+  return next();
+});
 
 export default mongoose.model("Quiz", quizSchema);

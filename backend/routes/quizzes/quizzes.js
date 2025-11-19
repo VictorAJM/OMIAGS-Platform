@@ -29,7 +29,7 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/quizzes/list
-// Get a list of all qui8zzes
+// Get a list of all quizzes
 router.get("/list", async (req, res) => {
   try {
     const quizzes = await Quiz.find().select("_id title description");
@@ -40,6 +40,72 @@ router.get("/list", async (req, res) => {
     return res
       .status(500)
       .json({ message: "Server error while fetching quizzes." });
+  }
+});
+
+// GET /api/quizzes/get-score
+// Get the score of a given user on a given quiz
+router.get("/quiz-score", requireAuth, async (req, res) => {
+  let { quizId, userId } = req.query;
+
+  if (!userId) {
+    userId = req.user._id;
+  } else if (req.user.role !== "admin") {
+    return res
+      .status(401)
+      .json({ message: "User not allowed to perform this operation." });
+  }
+
+  try {
+    const quiz = await Quiz.findById(quizId);
+
+    if (!quiz) {
+      return res.status(404).json({ message: "Quiz not found" });
+    }
+
+    const quizAttempt = await QuizAttempt.findOne({
+      userId,
+      quizId,
+    });
+
+    let status = "Not attempted";
+    let score = 0;
+
+    if (quizAttempt) {
+      status = quizAttempt.completed ? "Started" : "Completed";
+      score = (quizAttempt.currentScore / quiz.maxScore) * 100;
+      score = parseFloat(score.toFixed(2));
+    }
+
+    return res.json({ status, score });
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Server error while creating quiz." });
+  }
+});
+
+// GET /api/quizzes/attemts
+// Returns the number of users that have attempted the given quiz
+router.get("/attempts", requireAuth, async (req, res) => {
+  const { quizId } = req.query;
+
+  if (req.user.role !== "admin") {
+    return res
+      .status(401)
+      .json({ message: "User not allowed to perform this operation." });
+  }
+
+  try {
+    return res.json({
+      attemptCount: await QuizAttempt.countDocuments({ quizId }),
+    });
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Server error fetching number of attempts." });
   }
 });
 
@@ -72,6 +138,7 @@ router.get("/:quizId", requireAuth, async (req, res) => {
         value: q.value,
         options: q.options,
         ...(q.code !== undefined && { code: q.code }),
+        ...(req.user.role === "admin" && { correctAnswer: q.correctAnswer }),
       })),
     });
   } catch (err) {
@@ -107,6 +174,43 @@ router.post("/", async (req, res) => {
     return res
       .status(500)
       .json({ message: "Server error while creating quiz." });
+  }
+});
+
+// PUT /api/quizzes/:quizId
+router.put("/:quizId", async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { title, description, questions, deleteAttempts } = req.body;
+
+    // Basic validation
+    if (!title || !questions) {
+      return res.status(400).json({
+        message: "Missing required fields: title and questions are required.",
+      });
+    }
+
+    if (deleteAttempts !== null && deleteAttempts) {
+      await QuizAttempt.deleteMany({ quizId });
+    }
+
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ message: "Quiz not found" });
+    }
+
+    quiz.title = title;
+    quiz.description = description;
+    quiz.questions = questions;
+
+    const updatedQuiz = await quiz.save();
+
+    return res.json(updatedQuiz);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Server error while updating quiz." });
   }
 });
 
@@ -163,23 +267,23 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
           }
         }
 
-        if (isCorrect) {
-          quizAttempt.currentScore++;
-        }
-
         if (quizAttempt.questionsAnswered === quiz.questions.length) {
           quizAttempt.completed = true;
         }
 
         const answerObj = {
           correct: isCorrect,
-          answer: question.correctAnswer,
+          score: isCorrect ? question.value : 0,
+          answer,
         };
 
         quizAttempt.answers.push(answerObj);
         await quizAttempt.save();
 
-        return res.json(answerObj);
+        return res.json({
+          correct: isCorrect,
+          answer: question.correctAnswer,
+        });
       } else {
         return res.status(404).json({ message: "Question not found" });
       }

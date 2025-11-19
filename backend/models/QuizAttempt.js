@@ -1,5 +1,22 @@
 import mongoose from "mongoose";
 
+const quizAnswerSchema = new mongoose.Schema({
+  correct: {
+    type: Boolean,
+    required: true,
+  },
+
+  score: {
+    type: Number,
+    required: true,
+  },
+
+  answer: {
+    type: mongoose.Schema.Types.Mixed,
+    required: true,
+  },
+});
+
 const quizAttemptSchema = new mongoose.Schema({
   // ID del quiz
   quizId: {
@@ -39,9 +56,20 @@ const quizAttemptSchema = new mongoose.Schema({
   },
 
   answers: {
-    type: [mongoose.Schema.Types.Mixed],
+    type: [quizAnswerSchema],
     default: [],
   },
+});
+
+quizAttemptSchema.pre("save", function (next) {
+  if (this.answers.length > 0) {
+    this.completed = true;
+    this.currentScore = this.answers.reduce(
+      (total, answer) => total + answer.score,
+      0,
+    );
+  }
+  next();
 });
 
 export default mongoose.model("QuizAttempt", quizAttemptSchema);
