@@ -1,9 +1,13 @@
 <script>
   import { createEventDispatcher } from "svelte";
   /**
-   * @type {{ options: any[]; type: string; correctAnswer: string | any[]; title: any; code: any; }}
+   * @type {{ options: any[]; type: string; correctAnswer: string | any[]; title: any; code: any; value?: number; }}
    */
   export let question;
+
+  $: if (question && question.value === undefined) {
+    question.value = 1;
+  }
   export let index;
 
   const dispatch = createEventDispatcher();
@@ -61,7 +65,19 @@
 
 <div class="question-editor-card">
   <div class="question-header">
-    <span class="question-number">Question {index + 1}</span>
+    <div class="question-title-group">
+      <span class="question-number">Question {index + 1}</span>
+      <div class="points-input-wrapper">
+        <label for="points-{index}">Points:</label>
+        <input
+          id="points-{index}"
+          type="number"
+          min="0"
+          bind:value={question.value}
+          class="points-input"
+        />
+      </div>
+    </div>
     <button class="remove-question-btn" on:click={() => dispatch("remove")}
       >Remove</button
     >
@@ -201,8 +217,32 @@
   .question-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 1rem;
+  }
+  .question-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .points-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #555;
+  }
+  .points-input {
+    width: 70px;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+  }
+  .points-input:focus {
+    outline: none;
+    border-color: #1a73e8;
   }
   .question-number {
     font-weight: 500;

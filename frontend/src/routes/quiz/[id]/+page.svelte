@@ -197,10 +197,13 @@
       <div class="quiz-card">
         <!-- Progress Bar -->
         <div class="progress-container">
-          <span class="progress-text"
-            >Question {currentQuestionIndex + 1} of {quizData.questions
-              .length}</span
-          >
+          <div class="progress-info">
+            <span class="progress-text"
+              >Question {currentQuestionIndex + 1} of {quizData.questions
+                .length}</span
+            >
+            <span class="points-text">{currentQuestion.value || 1} pts</span>
+          </div>
           <div class="progress-bar">
             <div class="progress-bar-fill" style="width: {progress}%" />
           </div>
@@ -382,11 +385,20 @@
   .progress-container {
     width: 100%;
   }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
   .progress-text {
     font-size: 0.9rem;
     color: #5f6368;
-    margin-bottom: 0.5rem;
-    text-align: center;
+  }
+  .points-text {
+    font-size: 0.9rem;
+    color: #5f6368;
+    font-weight: 500;
   }
   .progress-bar {
     width: 100%;
