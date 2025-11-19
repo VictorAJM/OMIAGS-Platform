@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from '$app/navigation'; 
-  import NavBar from "$lib/components/NavBar.svelte"; // Ajusta la ruta según tu estructura
+  import NavBar from "$lib/components/NavBar.svelte"; 
   import CourseDetails from "$lib/components/CourseDetails.svelte";
 
   let course = null;
@@ -13,7 +13,7 @@
   let courseId = $page.params.id;
   let expandedLesson = null;
 
-  // Cálculo reactivo del progreso en tiempo real
+  // Cálculo reactivo del progreso
   $: totalLessons = lessons.length;
   $: completedCount = lessons.filter(l => l.completed).length;
   $: currentProgress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
@@ -31,7 +31,7 @@
     Authorization: `Bearer ${token()}`
   });
 
-    async function loadUser() {
+  async function loadUser() {
     const t = token();
     if (!t) {
       window.location.href = '/login';
@@ -50,13 +50,14 @@
   }
 
   onMount(async () => {
+    await loadUser(); // Aseguramos cargar usuario primero
+
     try {
       const courseRes = await fetch(`http://localhost:5000/api/courses/${courseId}`, { method: 'GET', headers: authHeaders() });
       if (!courseRes.ok) throw new Error("Error al cargar el curso");
       course = await courseRes.json();
 
-      // 2. Obtener lecciones (se asume que el endpoint devuelve si están completed o no)
-      const lessonRes = await fetch(`http://localhost:5000/api/lessons/${courseId}/lessons`);
+      const lessonRes = await fetch(`http://localhost:5000/api/lessons/${courseId}/lessons`, { headers: authHeaders() }); // Agregué headers aquí también por seguridad
       if (!lessonRes.ok) throw new Error("Error al cargar lecciones");
       lessons = await lessonRes.json();
 
@@ -72,16 +73,18 @@
   }
 
   function openContent(contentId) {
-    // Navegación optimizada para SvelteKit
     goto(`/content/${contentId}`);
+  }
+  
+  // Función para volver
+  function goBack() {
+    goto('/cursos');
   }
 
   async function toggleCompleted(lesson) {
-    // Optimistic UI: Actualizamos visualmente antes de la respuesta del servidor
     const oldStatus = lesson.completed;
     const newStatus = !oldStatus;
     
-    // Actualizamos el estado local inmediatamente para que la UI se sienta rápida
     lessons = lessons.map(l => 
       l._id === lesson._id ? { ...l, completed: newStatus } : l
     );
@@ -89,28 +92,28 @@
     try {
       const res = await fetch(`http://localhost:5000/api/lessons/${lesson._id}/completed`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() }, // Importante: headers con auth
         body: JSON.stringify({ completed: newStatus })
       });
 
-      if (!res.ok) {
-        throw new Error("Fallo al guardar");
-      }
-      // Si todo sale bien, no hacemos nada más, ya actualizamos la UI
+      if (!res.ok) throw new Error("Fallo al guardar");
     } catch (err) {
       console.error("Error updating completed:", err);
-      // Si falla, revertimos el cambio
       lessons = lessons.map(l => 
         l._id === lesson._id ? { ...l, completed: oldStatus } : l
       );
-      alert("No se pudo guardar el progreso. Intenta de nuevo.");
+      alert("No se pudo guardar el progreso.");
     }
   }
 </script>
 
-<NavBar viewerType="student" username="Chaska" />
+<NavBar viewerType="student" username={username} />
 
 <div class="course-page">
+  <button class="back-btn" on:click={goBack}>
+    ← Volver a mis cursos
+  </button>
+
   {#if loading}
     <div class="loading-state">
       <div class="spinner"></div>
@@ -200,6 +203,27 @@
 <style>
   .course-page { max-width: 800px; margin: 2rem auto; padding: 0 1rem; font-family: 'Inter', sans-serif; }
   
+  /* ESTILOS DEL BOTÓN VOLVER */
+  .back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 0;
+    font-size: 0.95rem;
+    transition: color 0.2s, transform 0.2s;
+  }
+
+  .back-btn:hover {
+    color: #1e293b;
+    transform: translateX(-3px); /* Efecto visual de movimiento a la izquierda */
+  }
+
   /* Estados de carga y error */
   .loading-state, .error-state, .empty-state { text-align: center; padding: 3rem; color: #666; }
   .error-state { color: #e53e3e; }
@@ -274,7 +298,7 @@
   .contents-list { list-style: none; margin: 0; padding: 0; }
   
   .content-item {
-    padding: 1rem 1.25rem 1rem 3.5rem; /* Indentado para alinear con el texto */
+    padding: 1rem 1.25rem 1rem 3.5rem;
     display: flex; align-items: center; gap: 0.75rem;
     cursor: pointer; border-bottom: 1px solid #edf2f7; transition: background 0.1s;
   }

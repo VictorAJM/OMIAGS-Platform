@@ -72,45 +72,42 @@
 
 <NavBar {viewerType} {username} />
 
-<main class="main-content">
-  <h2>Mis Cursos</h2>
-  <div class="course-list">
-    {#each courses as course (course.id)}
-      <CourseCardStudent
-        {course}
-      />
+<div class="dashboard-container">
+  <h1>Mis Cursos</h1>
+  
+  <div class="courses-grid">
+    {#each courses as course}
+      <div class="grid-item"> <CourseCardStudent {course} />
+      </div>
     {/each}
   </div>
-</main>
+</div>
 
 <style>
-  .main-content {
+  .dashboard-container {
+    max-width: 1000px; /* Ancho máximo del contenedor general */
+    margin: 0 auto;
     padding: 2rem;
-    background: #f9fafb;
-    min-height: calc(100vh - 60px); /* leaves space for navbar */
   }
 
-  h2 {
-    margin-bottom: 1.5rem;
-    font-size: 1.5rem;
-    color: #333;
+  .courses-grid {
+    display: grid;
+    /* ESTA ES LA CLAVE: 2 columnas de igual tamaño */
+    grid-template-columns: 1fr 1fr; 
+    gap: 2rem; /* Espacio entre tarjetas */
+    justify-items: center; /* Centra las tarjetas en su columna */
   }
 
-  .course-list {
-    max-height: calc(100vh - 140px);
-    overflow-y: auto;
-    padding-right: 0.5rem;
+  .grid-item {
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
-  /* Custom scrollbar */
-  .course-list::-webkit-scrollbar {
-    width: 8px;
-  }
-  .course-list::-webkit-scrollbar-thumb {
-    background: #bbb;
-    border-radius: 4px;
-  }
-  .course-list::-webkit-scrollbar-thumb:hover {
-    background: #888;
+  /* RESPONSIVE: En celulares (menos de 768px) pasa a 1 sola fila */
+  @media (max-width: 768px) {
+    .courses-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
