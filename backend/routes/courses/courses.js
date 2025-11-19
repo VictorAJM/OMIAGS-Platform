@@ -10,8 +10,12 @@ router.get("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
     
-    const courses = await Course.find({ owner: userId })
-      .populate('accessList', 'email'); 
+    const courses = await Course.find({
+      $or: [
+        { owner: userId },
+        { accessList: userId }
+      ]
+    }).populate('accessList', 'email'); 
 
     const lessonsByCourse = await Lesson.aggregate([
       { $match: { courseId: { $in: courses.map(c => c._id) } } },
@@ -49,8 +53,12 @@ router.get("/:courseId", requireAuth, async (req, res) => {
     
     if (!course) return res.status(404).json({ message: "Course not found" });
 
-    if (course.owner?.toString() !== userId) {
-      return res.status(403).json({ message: "Access denied" });
+    const isOwner = course.owner?.toString() === userId;
+    
+    const isStudent = course.accessList.some(student => student._id.toString() === userId);
+
+    if (!isOwner && !isStudent) {
+      return res.status(403).json({ message: "Access denied. You are not enrolled in this course." });
     }
 
     res.json({
@@ -59,7 +67,7 @@ router.get("/:courseId", requireAuth, async (req, res) => {
       description: course.description,
       progress: course.progress,
       category: course.category,
-      students: course.accessList ? course.accessList.map(u => u.email) : []
+      students: isOwner ? course.accessList.map(u => u.email) : [] 
     });
   } catch (err) {
     console.error(err);
@@ -75,7 +83,10 @@ router.get("/:courseId/lessons", requireAuth, async (req, res) => {
     const course = await Course.findById(courseId);
     if (!course) return res.status(404).json({ message: "Course not found" });
 
-    if (course.owner?.toString() !== userId) {
+    const isOwner = course.owner?.toString() === userId;
+    const isStudent = course.accessList.includes(userId); 
+
+    if (!isOwner && !isStudent) {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -85,12 +96,13 @@ router.get("/:courseId/lessons", requireAuth, async (req, res) => {
       id: l._id.toString(),
       title: l.title,
       description: l.description,
-      completed: l.completed,
+      completed: l.completed, 
       contents: l.contents,
     }));
 
     res.json(formatted);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });

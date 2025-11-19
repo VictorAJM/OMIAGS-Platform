@@ -1,8 +1,9 @@
 <script>
-  import NavBar from "../../../lib/components/NavBar.svelte";
   import { onMount } from "svelte";
   import { page } from "$app/stores";
-  import CourseDetails from "../../../lib/components/CourseDetails.svelte";
+  import { goto } from '$app/navigation'; 
+  import NavBar from "$lib/components/NavBar.svelte"; // Ajusta la ruta según tu estructura
+  import CourseDetails from "$lib/components/CourseDetails.svelte";
 
   let course = null;
   let lessons = [];
@@ -10,18 +11,53 @@
   let error = "";
 
   let courseId = $page.params.id;
-  let expandedLesson = null; // controlar qué lección está expandida
+  let expandedLesson = null;
+
+  // Cálculo reactivo del progreso en tiempo real
+  $: totalLessons = lessons.length;
+  $: completedCount = lessons.filter(l => l.completed).length;
+  $: currentProgress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+  let username = '';
+  let viewerType = 'student';
+
+  const API_BASE = 'http://localhost:5000';
+
+  const token = () =>
+    document.cookie.split('; ').find((row) => row.startsWith('session='))?.split('=')[1];
+
+  const authHeaders = () => ({
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token()}`
+  });
+
+    async function loadUser() {
+    const t = token();
+    if (!t) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const res = await fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
+    if (res.status === 401) {
+      document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      window.location.href = '/login';
+      return;
+    }
+    const data = await res.json();
+    username = data.name;
+    viewerType = data.role || 'student';
+  }
 
   onMount(async () => {
     try {
-      // Fetch course details
-      const courseRes = await fetch(`http://localhost:5000/api/courses/${courseId}`);
-      if (!courseRes.ok) throw new Error("Failed to load course");
+      const courseRes = await fetch(`http://localhost:5000/api/courses/${courseId}`, { method: 'GET', headers: authHeaders() });
+      if (!courseRes.ok) throw new Error("Error al cargar el curso");
       course = await courseRes.json();
 
-      // Fetch lessons
+      // 2. Obtener lecciones (se asume que el endpoint devuelve si están completed o no)
       const lessonRes = await fetch(`http://localhost:5000/api/lessons/${courseId}/lessons`);
-      if (!lessonRes.ok) throw new Error("Failed to load lessons");
+      if (!lessonRes.ok) throw new Error("Error al cargar lecciones");
       lessons = await lessonRes.json();
 
     } catch (err) {
@@ -35,30 +71,39 @@
     expandedLesson = expandedLesson === lessonId ? null : lessonId;
   }
 
-  function openContent(content) {
-    // Aquí decides a dónde redirigir
-    window.location.href = `/content/${content._id}`;
+  function openContent(contentId) {
+    // Navegación optimizada para SvelteKit
+    goto(`/content/${contentId}`);
   }
 
   async function toggleCompleted(lesson) {
+    // Optimistic UI: Actualizamos visualmente antes de la respuesta del servidor
+    const oldStatus = lesson.completed;
+    const newStatus = !oldStatus;
+    
+    // Actualizamos el estado local inmediatamente para que la UI se sienta rápida
+    lessons = lessons.map(l => 
+      l._id === lesson._id ? { ...l, completed: newStatus } : l
+    );
+
     try {
-      const newStatus = !lesson.completed;
       const res = await fetch(`http://localhost:5000/api/lessons/${lesson._id}/completed`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ completed: newStatus })
       });
 
-      if (!res.ok) throw new Error("Failed to update lesson");
-
-      const updatedLesson = await res.json();
-
-      // Update local lessons state
-      lessons = lessons.map(l => 
-        l._id === updatedLesson._id ? { ...l, completed: updatedLesson.completed } : l
-      );
+      if (!res.ok) {
+        throw new Error("Fallo al guardar");
+      }
+      // Si todo sale bien, no hacemos nada más, ya actualizamos la UI
     } catch (err) {
       console.error("Error updating completed:", err);
+      // Si falla, revertimos el cambio
+      lessons = lessons.map(l => 
+        l._id === lesson._id ? { ...l, completed: oldStatus } : l
+      );
+      alert("No se pudo guardar el progreso. Intenta de nuevo.");
     }
   }
 </script>
@@ -67,62 +112,79 @@
 
 <div class="course-page">
   {#if loading}
-    <p>Cargando curso...</p>
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando tu aprendizaje...</p>
+    </div>
   {:else if error}
-    <p class="error">{error}</p>
+    <div class="error-state">
+      <p>⚠️ {error}</p>
+      <button on:click={() => window.location.reload()}>Reintentar</button>
+    </div>
   {:else}
     {#if course}
       <CourseDetails
-        title={course.title}
+        title={course.title || course.name}
         description={course.description}
-        progress={course.progress}
+        progress={currentProgress} 
+        totalLessons={totalLessons}
+        completedLessons={completedCount}
       />
     {/if}
 
     {#if lessons.length === 0}
-      <p>No hay lecciones disponibles.</p>
+      <div class="empty-state">No hay lecciones disponibles aún.</div>
     {:else}
       <div class="lessons-list">
         {#each lessons as lesson, i}
-          <div class="lesson-card">
-            <!-- Lesson header -->
+          <div class="lesson-card {lesson.completed ? 'is-completed' : ''}">
+            
             <div class="lesson-header" on:click={() => toggleLesson(lesson._id)}>
-              
-              <!-- Number -->
-              <span class="lesson-number">{i + 1}</span>
+              <span class="lesson-number">
+                {#if lesson.completed}✓{:else}{i + 1}{/if}
+              </span>
 
-              <!-- Title & description -->
-              <div class="lesson-content">
+              <div class="lesson-info">
                 <h3>{lesson.title}</h3>
-                <p>{lesson.description}</p>
+                {#if lesson.description}
+                  <p class="lesson-desc">{lesson.description}</p>
+                {/if}
               </div>
 
-              <!-- Actions -->
               <div class="lesson-actions" on:click|stopPropagation>
-                <label class="completed-toggle">
+                <label class="checkbox-container" title="Marcar como completa">
                   <input
                     type="checkbox"
                     checked={lesson.completed}
                     on:change={() => toggleCompleted(lesson)}
                   />
-                  <span>{lesson.completed ? "Completo" : "Incompleto"}</span>
+                  <span class="checkmark"></span>
                 </label>
-                <span class="expand-icon">
+                
+                <button class="expand-btn">
                   {expandedLesson === lesson._id ? "−" : "+"}
-                </span>
+                </button>
               </div>
             </div>
 
-            <!-- Expanded contents -->
             {#if expandedLesson === lesson._id}
-              <ul class="contents-list">
-                {#each lesson.contents as content}
-                  <li class="content-item" on:click={() => openContent(content)}>
-                    <span class="content-type">{content.type.toUpperCase()}</span>
-                    <span class="content-title">{content.title}</span>
-                  </li>
-                {/each}
-              </ul>
+              <div class="lesson-body" transition:slide|local={{ duration: 200 }}>
+                {#if lesson.contents && lesson.contents.length > 0}
+                  <ul class="contents-list">
+                    {#each lesson.contents as content}
+                      <li class="content-item" on:click={() => openContent(content._id)}>
+                        <span class="icon-type {content.type}">
+                          {content.type === 'video' ? '🎥' : content.type === 'quiz' ? '📝' : '📄'}
+                        </span>
+                        <span class="content-title">{content.title}</span>
+                        <span class="arrow">→</span>
+                      </li>
+                    {/each}
+                  </ul>
+                {:else}
+                  <p class="no-content">Esta lección aún no tiene contenido.</p>
+                {/if}
+              </div>
             {/if}
           </div>
         {/each}
@@ -131,126 +193,96 @@
   {/if}
 </div>
 
+<script context="module">
+    import { slide } from 'svelte/transition';
+</script>
+
 <style>
-  .course-page {
-    max-width: 800px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-  }
-
-  .error {
-    color: red;
-    font-weight: bold;
-  }
-
-  .lessons-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-top: 1.5rem;
-  }
+  .course-page { max-width: 800px; margin: 2rem auto; padding: 0 1rem; font-family: 'Inter', sans-serif; }
+  
+  /* Estados de carga y error */
+  .loading-state, .error-state, .empty-state { text-align: center; padding: 3rem; color: #666; }
+  .error-state { color: #e53e3e; }
+  
+  /* Lista de lecciones */
+  .lessons-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; }
 
   .lesson-card {
     background: #fff;
-    border: 1px solid #e0e0e0;
+    border: 1px solid #e2e8f0;
     border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
     overflow: hidden;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
+  
+  .lesson-card:hover { border-color: #cbd5e0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+  .lesson-card.is-completed { background-color: #f8fff9; border-color: #c6f6d5; }
 
+  /* Header de la lección */
   .lesson-header {
     display: flex;
     align-items: center;
-    padding: 1rem 1.25rem;
+    padding: 1.25rem;
     cursor: pointer;
-    transition: background 0.2s ease;
-  }
-
-  .lesson-header:hover {
-    background: #f7fbff;
+    gap: 1rem;
   }
 
   .lesson-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: #edf2f7;
+    color: #4a5568;
+    border-radius: 50%;
     font-weight: bold;
-    font-size: 1.2rem;
-    color: #0077cc;
-    margin-right: 1.25rem;
+    font-size: 0.9rem;
     flex-shrink: 0;
   }
+  .is-completed .lesson-number { background: #48bb78; color: white; }
 
-  .lesson-content {
-    flex-grow: 1;
+  .lesson-info { flex-grow: 1; }
+  .lesson-info h3 { margin: 0; font-size: 1.05rem; color: #2d3748; font-weight: 600; }
+  .lesson-desc { margin: 0.25rem 0 0; font-size: 0.85rem; color: #718096; }
+
+  .lesson-actions { display: flex; align-items: center; gap: 1rem; }
+
+  /* Checkbox personalizado */
+  .checkbox-container { position: relative; display: inline-block; width: 24px; height: 24px; cursor: pointer; }
+  .checkbox-container input { opacity: 0; width: 0; height: 0; }
+  .checkmark {
+    position: absolute; top: 0; left: 0; height: 24px; width: 24px;
+    background-color: #fff; border: 2px solid #cbd5e0; border-radius: 6px; transition: all 0.2s;
   }
-
-  .lesson-content h3 {
-    margin: 0;
-    font-size: 1.05rem;
-    color: #222;
+  .checkbox-container:hover input ~ .checkmark { border-color: #a0aec0; }
+  .checkbox-container input:checked ~ .checkmark { background-color: #48bb78; border-color: #48bb78; }
+  .checkmark:after {
+    content: ""; position: absolute; display: none;
+    left: 8px; top: 4px; width: 5px; height: 10px;
+    border: solid white; border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
   }
+  .checkbox-container input:checked ~ .checkmark:after { display: block; }
 
-  .lesson-content p {
-    margin: 0.25rem 0 0;
-    font-size: 0.9rem;
-    color: #555;
-  }
+  .expand-btn { background: none; border: none; font-size: 1.5rem; color: #a0aec0; cursor: pointer; width: 24px; display:flex; justify-content:center;}
 
-  .lesson-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .completed-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.85rem;
-    color: #444;
-    cursor: pointer;
-  }
-
-  .completed-toggle input {
-    cursor: pointer;
-  }
-
-  .expand-icon {
-    font-size: 1.5rem;
-    color: #777;
-  }
-
-  .contents-list {
-    list-style: none;
-    margin: 0;
-    padding: 0.5rem 1rem 1rem 3rem;
-    background: #fafafa;
-  }
-
+  /* Contenido Interior */
+  .lesson-body { border-top: 1px solid #edf2f7; background: #fcfcfc; }
+  
+  .contents-list { list-style: none; margin: 0; padding: 0; }
+  
   .content-item {
-    padding: 0.5rem 0;
-    cursor: pointer;
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    border-bottom: 1px solid #eee;
+    padding: 1rem 1.25rem 1rem 3.5rem; /* Indentado para alinear con el texto */
+    display: flex; align-items: center; gap: 0.75rem;
+    cursor: pointer; border-bottom: 1px solid #edf2f7; transition: background 0.1s;
   }
+  .content-item:last-child { border-bottom: none; }
+  .content-item:hover { background: #f0f4f8; }
 
-  .content-item:last-child {
-    border-bottom: none;
-  }
-
-  .content-item:hover {
-    background: #eef6ff;
-  }
-
-  .content-type {
-    font-size: 0.75rem;
-    font-weight: bold;
-    color: #0077cc;
-    text-transform: uppercase;
-  }
-
-  .content-title {
-    font-size: 0.9rem;
-    color: #333;
-  }
+  .icon-type { font-size: 1.1rem; width: 24px; text-align: center;}
+  .content-title { flex-grow: 1; font-size: 0.95rem; color: #4a5568; }
+  .arrow { color: #cbd5e0; font-weight: bold; }
+  .no-content { padding: 1.5rem; text-align: center; color: #a0aec0; font-style: italic; font-size: 0.9rem;}
 </style>
