@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { fade } from "svelte/transition";
   import { page } from "$app/stores";
   import NavBar from "../../../../lib/components/NavBar.svelte";
   import QuestionEditor from "../../../../lib/components/QuestionEditor.svelte";
@@ -203,11 +204,112 @@
   }
 
   async function handleSaveChanges() {
-    if (quizData.currentAttempts && quizData.currentAttempts > 0) {
-      showConfirmSaveModal = true;
-    } else {
-      await performSave(false);
+    const validationError = validateQuiz();
+    if (validationError) {
+      showToast(validationError, "error");
+      return;
     }
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/quizzes/attempts?quizId=${$page.params.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${auth_token}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch attempt count");
+      }
+
+      const data = await response.json();
+      quizData.currentAttempts = data.attemptCount;
+
+      if (quizData.currentAttempts > 0) {
+        showConfirmSaveModal = true;
+      } else {
+        await performSave(false);
+      }
+    } catch (error) {
+      console.error("Error checking attempts:", error);
+      showToast("Error verifying quiz attempts. Please try again.", "error");
+    }
+  }
+
+  function validateQuiz() {
+    if (!quizData.questions || quizData.questions.length === 0) {
+      return "Please add at least one question.";
+    }
+
+    for (let i = 0; i < quizData.questions.length; i++) {
+      const q = quizData.questions[i];
+
+      // Check if title is empty
+      if (!q.title || q.title.trim() === "") {
+        return `Question ${i + 1} must have a title.`;
+      }
+
+      // Check if correct answer is selected/provided
+      if (q.type === "multiple-answer") {
+        if (
+          !q.correctAnswer ||
+          !Array.isArray(q.correctAnswer) ||
+          q.correctAnswer.length === 0
+        ) {
+          return `Question ${i + 1} must have at least one correct answer selected.`;
+        }
+      } else {
+        if (
+          !q.correctAnswer ||
+          (typeof q.correctAnswer === "string" && q.correctAnswer.trim() === "")
+        ) {
+          return `Question ${i + 1} must have a correct answer selected.`;
+        }
+      }
+
+      // specific checks for options
+      if (
+        ["multiple-choice", "multiple-answer", "complete-the-code"].includes(
+          q.type,
+        )
+      ) {
+        if (!q.options || q.options.length < 2) {
+          return `Question ${i + 1} must have at least two options.`;
+        }
+        // Check for empty options
+        if (
+          q.options.some(
+            (/** @type {string} */ opt) => !opt || opt.trim() === "",
+          )
+        ) {
+          return `Question ${i + 1} has empty options. Please fill or remove them.`;
+        }
+      }
+    }
+    return null;
+  }
+
+  let toastMessage = "";
+  let toastType = "info"; // 'info', 'success', 'error'
+  let showToastVisible = false;
+  /** @type {any} */
+  let toastTimeout;
+
+  /**
+   * @param {string} message
+   * @param {string} type
+   */
+  function showToast(message, type = "info") {
+    toastMessage = message;
+    toastType = type;
+    showToastVisible = true;
+
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      showToastVisible = false;
+    }, 4000);
   }
 
   /**
@@ -254,7 +356,7 @@
       }
     } catch (error) {
       console.error("Error updating quiz:", error);
-      alert("Error saving quiz. Please try again.");
+      showToast("Error saving quiz. Please try again.", "error");
     }
   }
 </script>
@@ -355,6 +457,26 @@
     on:saveOnly={() => performSave(false)}
     on:cancel={() => (showConfirmSaveModal = false)}
   />
+{/if}
+
+{#if showToastVisible}
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <div
+    class="toast-notification {toastType}"
+    on:click={() => (showToastVisible = false)}
+    transition:fade
+  >
+    <span class="toast-icon">
+      {#if toastType === "error"}
+        ⚠️
+      {:else if toastType === "success"}
+        ✅
+      {:else}
+        ℹ️
+      {/if}
+    </span>
+    <span class="toast-message">{toastMessage}</span>
+  </div>
 {/if}
 
 <style>
@@ -533,5 +655,46 @@
 
   .question-type-list button:last-child {
     margin-bottom: 0;
+  }
+
+  /* Toast Styles */
+  .toast-notification {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 2000;
+    cursor: pointer;
+    min-width: 300px;
+    max-width: 90%;
+  }
+
+  .toast-notification.error {
+    background-color: #e53e3e;
+  }
+
+  .toast-notification.success {
+    background-color: #38a169;
+  }
+
+  .toast-notification.info {
+    background-color: #3182ce;
+  }
+
+  .toast-icon {
+    font-size: 1.2rem;
+  }
+
+  .toast-message {
+    font-weight: 500;
+    font-size: 1rem;
   }
 </style>

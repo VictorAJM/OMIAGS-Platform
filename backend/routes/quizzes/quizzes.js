@@ -84,6 +84,25 @@ router.get("/quiz-score", requireAuth, async (req, res) => {
   }
 })
 
+// GET /api/quizzes/attemts
+// Returns the number of users that have attempted the given quiz
+router.get("/attempts", requireAuth, async (req, res) => {
+  let { quizId } = req.query;
+
+  if (req.user.role !== "admin") {
+    return res.status(401).json({ message: "User not allowed to perform this operation." })
+  }
+
+  try {
+    return res.json({ attemptCount: await QuizAttempt.countDocuments({ quizId }) })
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Server error fetching number of attempts." });
+  }
+})
+
 // GET /api/quizzes/:quizId
 router.get("/:quizId", requireAuth, async (req, res) => {
   try {
@@ -109,7 +128,6 @@ router.get("/:quizId", requireAuth, async (req, res) => {
       description: quiz.description,
       currentQuestion: quizAttempt ? quizAttempt.questionsAnswered : 0,
       currentScore: quizAttempt ? quizAttempt.currentScore : 0,
-      ...(req.user.role === "admin" && { currentAttempts }),
       // Map over questions to remove the correct answer before sending to the client
       questions: quiz.questions.map((q) => ({
         _id: q._id,
