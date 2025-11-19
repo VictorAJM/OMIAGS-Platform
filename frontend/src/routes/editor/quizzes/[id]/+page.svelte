@@ -5,18 +5,21 @@
   import QuestionEditor from "../../../../lib/components/QuestionEditor.svelte";
 
   import SuccessPopup from "../../../../lib/components/SuccessPopup.svelte";
+  import ConfirmSaveQuizModal from "../../../../lib/components/ConfirmSaveQuizModal.svelte";
 
   /**
-   * @type {{ title: string; description: string; questions: any[]; courseId?: string; }}
+   * @type {{ title: string; description: string; questions: any[]; courseId?: string; currentAttempts?: number; }}
    */
   let quizData = {
     title: "",
     description: "",
     questions: [],
+    currentAttempts: 0,
   };
 
   let showAddQuestionModal = false;
   let showSuccessPopup = false;
+  let showConfirmSaveModal = false;
   /**
    * @type {number}
    */
@@ -200,9 +203,21 @@
   }
 
   async function handleSaveChanges() {
+    if (quizData.currentAttempts && quizData.currentAttempts > 0) {
+      showConfirmSaveModal = true;
+    } else {
+      await performSave(false);
+    }
+  }
+
+  /**
+   * @param {boolean} deleteAttempts
+   */
+  async function performSave(deleteAttempts) {
     const quizPayload = JSON.parse(JSON.stringify(quizData));
 
     quizPayload.courseId = "60d5ecb4b7c5a53da8d6f123";
+    quizPayload.deleteAttempts = deleteAttempts;
 
     quizPayload.questions.forEach(
       (/** @type {{ _id: any; value: any; }} */ q) => {
@@ -231,6 +246,12 @@
       const responseData = await response.json();
       console.log("Quiz updated successfully:", responseData);
       showSuccessPopup = true;
+      showConfirmSaveModal = false;
+
+      // Update local state to reflect that attempts might have been deleted
+      if (deleteAttempts) {
+        quizData.currentAttempts = 0;
+      }
     } catch (error) {
       console.error("Error updating quiz:", error);
       alert("Error saving quiz. Please try again.");
@@ -324,6 +345,15 @@
   <SuccessPopup
     message="Quiz saved successfully!"
     on:close={() => (showSuccessPopup = false)}
+  />
+{/if}
+
+{#if showConfirmSaveModal}
+  <ConfirmSaveQuizModal
+    attemptsCount={quizData.currentAttempts || 0}
+    on:deleteAndSave={() => performSave(true)}
+    on:saveOnly={() => performSave(false)}
+    on:cancel={() => (showConfirmSaveModal = false)}
   />
 {/if}
 

@@ -58,12 +58,17 @@ router.get("/:quizId", requireAuth, async (req, res) => {
       quizId: quizId,
     });
 
+    const currentAttempts = req.user.role === "admin"
+      ? await QuizAttempt.countDocuments({ quizId })
+      : 0;
+
     return res.json({
       id: quiz._id.toString(),
       title: quiz.title,
       description: quiz.description,
       currentQuestion: quizAttempt ? quizAttempt.questionsAnswered : 0,
       currentScore: quizAttempt ? quizAttempt.currentScore : 0,
+      ...(req.user.role === "admin" && { currentAttempts }),
       // Map over questions to remove the correct answer before sending to the client
       questions: quiz.questions.map((q) => ({
         _id: q._id,
@@ -115,13 +120,17 @@ router.post("/", async (req, res) => {
 router.put("/:quizId", async (req, res) => {
   try {
     const { quizId } = req.params;
-    const { title, description, questions } = req.body;
+    const { title, description, questions, deleteAttempts } = req.body;
 
     // Basic validation
     if (!title || !questions) {
       return res.status(400).json({
         message: "Missing required fields: title and questions are required.",
       });
+    }
+
+    if (deleteAttempts !== null && deleteAttempts) {
+      await QuizAttempt.deleteMany({ quizId });
     }
 
     const updatedQuiz = await Quiz.findByIdAndUpdate(
