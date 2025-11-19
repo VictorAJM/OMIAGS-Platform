@@ -3,19 +3,19 @@ import mongoose from "mongoose";
 const quizAnswerSchema = new mongoose.Schema({
   correct: {
     type: Boolean,
-    required: true
+    required: true,
   },
 
   score: {
     type: Number,
-    required: true
+    required: true,
   },
 
   answer: {
     type: mongoose.Schema.Types.Mixed,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
 const quizAttemptSchema = new mongoose.Schema({
   // ID del quiz
@@ -66,7 +66,7 @@ quizAttemptSchema.pre("save", function (next) {
     this.completed = true;
     this.currentScore = this.answers.reduce(
       (total, answer) => total + answer.score,
-      0
+      0,
     );
   }
   next();

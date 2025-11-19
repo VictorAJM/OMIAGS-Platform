@@ -82,7 +82,10 @@ const quizSchema = new mongoose.Schema(
 
 quizSchema.pre("save", async function (next) {
   if (!this.isModified("questions")) return next();
-  this.maxScore = this.questions.reduce((total, question) => total + question.value, 0);
+  this.maxScore = this.questions.reduce(
+    (total, question) => total + question.value,
+    0,
+  );
   next();
 });
 

@@ -51,7 +51,9 @@ router.get("/quiz-score", requireAuth, async (req, res) => {
   if (!userId) {
     userId = req.user._id;
   } else if (req.user.role !== "admin") {
-    return res.status(401).json({ message: "User not allowed to perform this operation." })
+    return res
+      .status(401)
+      .json({ message: "User not allowed to perform this operation." });
   }
 
   try {
@@ -71,18 +73,18 @@ router.get("/quiz-score", requireAuth, async (req, res) => {
 
     if (quizAttempt) {
       status = quizAttempt.completed ? "Started" : "Completed";
-      score = quizAttempt.currentScore / quiz.maxScore * 100;
+      score = (quizAttempt.currentScore / quiz.maxScore) * 100;
       score = parseFloat(score.toFixed(2));
     }
 
-    return res.json({ status, score })
+    return res.json({ status, score });
   } catch (err) {
     console.error(err);
     return res
       .status(500)
       .json({ message: "Server error while creating quiz." });
   }
-})
+});
 
 // GET /api/quizzes/attemts
 // Returns the number of users that have attempted the given quiz
@@ -90,18 +92,22 @@ router.get("/attempts", requireAuth, async (req, res) => {
   let { quizId } = req.query;
 
   if (req.user.role !== "admin") {
-    return res.status(401).json({ message: "User not allowed to perform this operation." })
+    return res
+      .status(401)
+      .json({ message: "User not allowed to perform this operation." });
   }
 
   try {
-    return res.json({ attemptCount: await QuizAttempt.countDocuments({ quizId }) })
+    return res.json({
+      attemptCount: await QuizAttempt.countDocuments({ quizId }),
+    });
   } catch (err) {
     console.error(err);
     return res
       .status(500)
       .json({ message: "Server error fetching number of attempts." });
   }
-})
+});
 
 // GET /api/quizzes/:quizId
 router.get("/:quizId", requireAuth, async (req, res) => {
@@ -118,9 +124,10 @@ router.get("/:quizId", requireAuth, async (req, res) => {
       quizId: quizId,
     });
 
-    const currentAttempts = req.user.role === "admin"
-      ? await QuizAttempt.countDocuments({ quizId })
-      : 0;
+    const currentAttempts =
+      req.user.role === "admin"
+        ? await QuizAttempt.countDocuments({ quizId })
+        : 0;
 
     return res.json({
       id: quiz._id.toString(),
@@ -261,7 +268,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-              JSON.stringify([...question.correctAnswer].sort());
+                JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
