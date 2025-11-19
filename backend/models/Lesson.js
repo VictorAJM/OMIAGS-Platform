@@ -9,11 +9,12 @@ const lessonSchema = new mongoose.Schema({
   },
   title: { type: String, required: true },
   description: String,
-  contents: [contentSchema],
+  // Array de subdocumentos usando el esquema definido arriba
+  contents: [contentSchema], 
   completed: {
     type: Boolean,
-    default: false, // lessons start as not completed
+    default: false,
   },
-});
+}, { timestamps: true });
 
 export default mongoose.model("Lesson", lessonSchema);

@@ -3,24 +3,47 @@ import Lesson from "../../models/Lesson.js";
 
 const router = express.Router();
 
-// en routes/lessons.js
+// Helper para validar que el contenido tenga sentido según su tipo
+const validateContent = (contents) => {
+  if (!Array.isArray(contents)) return "Contents must be an array";
+  
+  for (let item of contents) {
+    if (!item.title) return "All contents must have a title";
+    if (!['video', 'pdf', 'text', 'quiz'].includes(item.type)) {
+      return `Invalid content type: ${item.type}`;
+    }
+    if ((item.type === 'video' || item.type === 'pdf') && !item.url) {
+      return `Content "${item.title}" requires a URL`;
+    }
+    if (item.type === 'text' && !item.textContent) {
+      return `Content "${item.title}" requires textContent`;
+    }
+    if (item.type === 'quiz' && !item.quizId) {
+      return `Content "${item.title}" requires a quizId`;
+    }
+  }
+  return null; // null significa que no hay error
+};
+
+// GET /api/lessons/:id
 router.get("/:id", async (req, res) => {
   try {
+    // Si quieres ver los detalles del quiz dentro de la lección, añade otro populate:
+    // .populate("contents.quizId")
     const lesson = await Lesson.findById(req.params.id).populate("courseId");
+    if (!lesson) return res.status(404).json({ message: "Lesson not found" });
     res.json(lesson);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// en routes/courses.js
+// GET /api/lessons/:courseId/lessons (Listar lecciones de un curso)
 router.get("/:courseId/lessons", async (req, res) => {
   try {
     const { courseId } = req.params;
-    const lessons = await Lesson.find({ courseId }).populate(
-      "courseId",
-      "title",
-    );
+    const lessons = await Lesson.find({ courseId })
+      .sort({ createdAt: 1 }); // Ordenar por creación usualmente es útil
     res.json(lessons);
   } catch (err) {
     console.error("Error fetching lessons:", err);
@@ -32,14 +55,47 @@ router.get("/:courseId/lessons", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { courseId, title, description, contents } = req.body;
+    
     if (!courseId || !title)
       return res.status(400).json({ message: "courseId and title required" });
+
+    // Validar estructura de contenidos
+    if (contents && contents.length > 0) {
+      const error = validateContent(contents);
+      if (error) return res.status(400).json({ message: error });
+    }
 
     const lesson = new Lesson({ courseId, title, description, contents });
     await lesson.save();
     res.status(201).json(lesson);
   } catch (err) {
     console.error("Error creating lesson:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// PUT /api/lessons/:id
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, contents } = req.body;
+
+    const lesson = await Lesson.findById(id);
+    if (!lesson) return res.status(404).json({ message: "Lesson not found" });
+
+    if (title !== undefined) lesson.title = title;
+    if (description !== undefined) lesson.description = description;
+    
+    if (contents !== undefined) {
+       const error = validateContent(contents);
+       if (error) return res.status(400).json({ message: error });
+       lesson.contents = contents;
+    }
+
+    await lesson.save();
+    res.json({ message: "Lesson updated", lesson });
+  } catch (err) {
+    console.error("Error updating lesson:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -57,53 +113,19 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// PUT /api/lessons/:id
-// Body: { title?, description?, contents? }
-router.put("/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, description, contents } = req.body;
-
-    // Find the lesson
-    const lesson = await Lesson.findById(id);
-    if (!lesson) return res.status(404).json({ message: "Lesson not found" });
-
-    // Update only allowed fields
-    if (title !== undefined) lesson.title = title;
-    if (description !== undefined) lesson.description = description;
-    if (contents !== undefined) lesson.contents = contents;
-
-    // Save changes
-    await lesson.save();
-
-    res.json({ message: "Lesson updated", lesson });
-  } catch (err) {
-    console.error("Error updating lesson:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
 // PUT /api/lessons/:id/completed
 router.put("/:id/completed", async (req, res) => {
   try {
     const { completed } = req.body;
-
     if (typeof completed !== "boolean") {
-      return res
-        .status(400)
-        .json({ message: "Completed must be true or false" });
+      return res.status(400).json({ message: "Completed must be boolean" });
     }
-
     const updatedLesson = await Lesson.findByIdAndUpdate(
       req.params.id,
       { completed },
-      { new: true }, // return the updated document
+      { new: true }
     );
-
-    if (!updatedLesson) {
-      return res.status(404).json({ message: "Lesson not found" });
-    }
-
+    if (!updatedLesson) return res.status(404).json({ message: "Lesson not found" });
     res.json(updatedLesson);
   } catch (err) {
     console.error("Error updating lesson:", err);
