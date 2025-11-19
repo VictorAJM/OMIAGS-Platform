@@ -72,6 +72,7 @@ router.get("/:quizId", requireAuth, async (req, res) => {
         value: q.value,
         options: q.options,
         ...(q.code !== undefined && { code: q.code }),
+        ...(req.user.role === "admin" && { correctAnswer: q.correctAnswer }),
       })),
     });
   } catch (err) {
