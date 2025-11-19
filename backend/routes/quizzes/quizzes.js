@@ -263,7 +263,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-              JSON.stringify([...question.correctAnswer].sort());
+                JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
