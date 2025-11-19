@@ -42,14 +42,13 @@
         question.correctAnswer.push(option);
       }
       question.correctAnswer = question.correctAnswer;
-    } else {
       question.correctAnswer = option;
     }
   }
   function resize(node) {
     const handleInput = () => {
       node.style.height = "auto";
-      node.style.height = node.scrollHeight + "px";
+      node.style.height = node.scrollHeight + 5 + "px";
     };
     node.addEventListener("input", handleInput);
     // Initial resize
@@ -193,6 +192,7 @@
       />
     {:else if question.type === "complete-the-code"}
       <textarea
+        use:resize
         bind:value={question.code}
         class="code-input"
         placeholder="Enter code with [blank] for the blank space"
