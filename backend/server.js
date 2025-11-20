@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 import courseRoutes from "./routes/courses/courses.js";
 import lessonRoutes from "./routes/lessons/lessons.js";
 import quizRoutes from "./routes/quizzes/quizzes.js";

@@ -19,7 +19,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     // Generate unique name: timestamp-originalName.pdf
     // remove spaces to avoid URL issues
-    const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, '-')}`;
+    const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "-")}`;
     cb(null, uniqueName);
   },
 });
@@ -33,10 +33,10 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ 
-  storage, 
+const upload = multer({
+  storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // Limit to 10MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // Limit to 10MB
 });
 
 // 3. The POST Endpoint
