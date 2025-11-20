@@ -10,7 +10,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const { lessonId } = req.query;
-    
+
     if (!lessonId) {
       return res
         .status(400)
@@ -224,7 +224,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
         quizAttempt = new QuizAttempt({
           userId: req.user._id,
           quizId: quizId,
-          lessonId: quiz.lessonId, 
+          lessonId: quiz.lessonId,
           completed: false,
           questionsAnswered: 0,
           currentScore: 0,
@@ -248,7 +248,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-              JSON.stringify([...question.correctAnswer].sort());
+                JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
@@ -287,7 +287,12 @@ router.post("/no-auth-submit-answer", async (req, res) => {
   try {
     const { quizId, userId, questionIndex, answer } = req.body;
 
-    if (quizId === null || userId === null || questionIndex === null || answer == null) {
+    if (
+      quizId === null ||
+      userId === null ||
+      questionIndex === null ||
+      answer == null
+    ) {
       return res.status(400).json({
         message:
           "Missing required fields: quizId, questionIndex and answer are required.",
@@ -306,7 +311,7 @@ router.post("/no-auth-submit-answer", async (req, res) => {
         quizAttempt = new QuizAttempt({
           userId: userId,
           quizId: quizId,
-          lessonId: quiz.lessonId, 
+          lessonId: quiz.lessonId,
           completed: false,
           questionsAnswered: 0,
           currentScore: 0,
@@ -330,7 +335,7 @@ router.post("/no-auth-submit-answer", async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-              JSON.stringify([...question.correctAnswer].sort());
+                JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
