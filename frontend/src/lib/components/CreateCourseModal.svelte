@@ -79,6 +79,29 @@
     } finally {
       loading = false;
     }
+
+    try {
+      const token = document.cookie.split("; ")
+      .find((row) => row.startsWith("session="))
+      ?.split("=")[1];
+      
+      const res = await fetch("http://localhost:5000/api/enrollments/all", {
+        method: "GET",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+
+      const data = await res.json(); 
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Error al leer enrollments');
+      }
+
+      console.log(data);
+    } catch (err: any) {
+      msg = err.message || "No se pueden leer los enrollments";
+      console.error("Request failed: ", err);
+    }
   }
 </script>
 

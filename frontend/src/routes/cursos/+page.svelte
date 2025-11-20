@@ -9,12 +9,18 @@
     name: string;
     description: string;
     level: string;
-    students: string[]; // Array de emails (solo visible si es owner, sino vacío)
+    students: string[];
     lessons: number;
-    personalProgress?: number; // Nuevo campo opcional
+    personalProgress: number;
+    completedLessons: string[];
     image?: string;
     color?: string;
   }
+
+  type ProgressData = {
+    personalProgress: number;
+    completedLessons: string[];
+  };
 
   let courses: Course[] = [];
   let username = '';
@@ -53,24 +59,50 @@
     }
   }
 
+  async function fetchCourseProgress(courseId: string): Promise<ProgressData> {
+    try {
+      const res = await fetch(`${API_BASE}/api/enrollments/status/${courseId}`, { 
+        headers: authHeaders() 
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        // Devolvemos ambos datos de la API
+        return {
+            personalProgress: data.studentProgress || 0,
+            completedLessons: data.completedLessons || []
+        };
+      }
+      // Retorno por defecto si la respuesta no es OK
+      return { personalProgress: 0, completedLessons: [] };
+    } catch (error) {
+      console.error(`Error cargando progreso para curso ${courseId}`, error);
+      return { personalProgress: 0, completedLessons: [] };
+    }
+  }
+
   async function loadCourses() {
     try {
-        const res = await fetch(`${API_BASE}/api/courses`, { headers: authHeaders() });
-        if (res.ok) {
-          const list = await res.json();
-          // Mapeo de datos del Backend al Frontend
-          courses = list.map((c: any) => ({
+      const res = await fetch(`${API_BASE}/api/courses`, { headers: authHeaders() });
+      if (res.ok) {
+        const list = await res.json();
+        const coursesPromises = list.map(async (c: any) => {
+          const progressData = await fetchCourseProgress(c.id);
+          return {
             id: c.id,
             name: c.name,
             description: c.description || "Sin descripción",
             level: c.category,
-            students: c.students || [], // Será [] si es estudiante
+            students: c.students || [],
             lessons: c.lessons || 0,
-            personalProgress: c.personalProgress || 0,
-            image: "📚", // Placeholder o lógica de imagen
+            personalProgress: progressData.personalProgress,
+            completedLessons: progressData.completedLessons,
+            image: "📚",
             color: "#3182ce",
-          }));
-        }
+          };
+        });
+        courses = await Promise.all(coursesPromises);
+      }
     } catch (error) {
         console.error("Error cargando cursos:", error);
     } finally {
@@ -104,7 +136,6 @@
     <div class="courses-grid">
       {#each courses as course}
         <div class="grid-item"> 
-             <!-- Pasamos el progreso al componente si lo soporta, o lo renderizamos custom aquí -->
              <CourseCardStudent {course} />
         </div>
       {/each}

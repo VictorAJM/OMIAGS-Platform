@@ -5,11 +5,9 @@
   export let course;
 
   const dispatch = createEventDispatcher();
-
-  // Cálculos reactivos
   $: total = course.lessons || 0;
-  $: completed = course.completed || 0;
-  $: percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+  $: completed = course.completedLessons ? course.completedLessons.length : 0;
+  $: percentage = course.personalProgress || 0;
   $: isCompleted = percentage === 100;
 
   function handleEnter() {
@@ -44,7 +42,7 @@
         <span class="progress-text">
           <strong>{completed}</strong> de {total} lecciones
         </span>
-        <span class="progress-percentage">{percentage}%</span>
+        <span class="progress-percentage">{Math.round(percentage)}%</span>
       </div>
       
       <div class="progress-bar-bg">
@@ -86,11 +84,9 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
-    height: 100%;
-    
-    /* --- ANCHO AJUSTADO --- */
+    height: 100%;    
     width: 100%;       
-    max-width: 420px;  /* Subido a 420px (antes 360px) */
+    max-width: 420px;
     margin: 0 auto;    
   }
 
@@ -100,7 +96,7 @@
   }
 
   .course-header {
-    padding: 1.5rem; /* Volví al padding original para aprovechar el ancho extra */
+    padding: 1.5rem; 
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -180,7 +176,7 @@
     width: 100%;
     color: white;
     border: 1px solid transparent;
-    padding: 0.75rem 1rem; /* Botón ligeramente más alto */
+    padding: 0.75rem 1rem;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;

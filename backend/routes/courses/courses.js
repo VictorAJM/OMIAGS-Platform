@@ -211,7 +211,9 @@ router.put("/:id", requireAuth, async (req, res) => {
       if (toEnrollIds.length > 0) {
           const newEnrollments = toEnrollIds.map(sid => ({
               student: sid,
-              course: course._id
+              course: course._id,
+              completedLessons: [],
+              studentProgress: 0
           }));
           await Enrollment.insertMany(newEnrollments);
       }

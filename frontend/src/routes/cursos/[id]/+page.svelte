@@ -8,22 +8,19 @@
 
   let course = null;
   let lessons = [];
-  // [NUEVO] Estado local para saber qué lecciones completó ESTE usuario
   let completedLessonIds = []; 
-  
   let loading = true;
   let error = "";
-
   let courseId = $page.params.id;
   let expandedLesson = null;
 
-  // [NUEVO] Cálculo reactivo del progreso basado en el array de IDs completados
+  // Reactividad: Calcula progreso automáticamente cuando completedLessonIds cambia
   $: totalLessons = lessons.length;
   $: completedCount = completedLessonIds.length;
   $: currentProgress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
   let username = '';
-  let userId = null; // [NUEVO] Necesario para guardar progreso
+  let userId = null;
   let viewerType = 'student';
 
   const API_BASE = 'http://localhost:5000';
@@ -51,20 +48,17 @@
     }
     const data = await res.json();
     username = data.name;
-    userId = data._id; // [NUEVO] Guardamos ID para usarlo en el toggle
+    userId = data._id || data.id; 
     viewerType = data.role || 'student';
   }
 
-  // [NUEVO] Función para cargar el progreso inicial del estudiante
-  // Nota: Necesitarás crear un endpoint GET en tu backend tipo /api/enrollments/status/:courseId
-  // Si no existe aún, el progreso empezará visualmente en 0 hasta que hagas click.
   async function loadEnrollmentStatus() {
     try {
-      // Ejemplo de endpoint hipotético para traer lo que el usuario ya completó al cargar la página
       const res = await fetch(`${API_BASE}/api/enrollments/status/${courseId}`, { headers: authHeaders() });
       if (res.ok) {
         const data = await res.json();
-        completedLessonIds = data.completedLessons || [];
+        // Aseguramos que sean strings para que .includes() funcione bien
+        completedLessonIds = (data.completedLessons || []).map(id => id.toString());
       }
     } catch (err) {
       console.warn("No se pudo cargar el estado inicial de la inscripción", err);
@@ -91,7 +85,6 @@
       if (!lessonRes.ok) throw new Error("Error al cargar lecciones");
       lessons = await lessonRes.json();
 
-      // Intentamos cargar qué lecciones ya estaban completas
       if (userId) {
         await loadEnrollmentStatus();
       }
@@ -111,14 +104,13 @@
     goto('/cursos');
   }
 
-  // [MODIFICADO] Nueva lógica de completado por usuario
   async function toggleCompleted(lesson) {
-    if (!userId) return alert("Debes iniciar sesión.");
+    if (!userId) return alert("Debes iniciar sesión para guardar tu progreso.");
 
     const isCompleted = completedLessonIds.includes(lesson._id);
-    const newStatus = !isCompleted; // Invertir estado actual
+    const newStatus = !isCompleted; 
     
-    // 1. Actualización Optimista (UI Update inmediata)
+    // 1. Actualización Optimista (UI inmediata)
     if (newStatus) {
       completedLessonIds = [...completedLessonIds, lesson._id];
     } else {
@@ -126,7 +118,6 @@
     }
 
     try {
-      // 2. Llamada al nuevo endpoint
       const res = await fetch(`${API_BASE}/api/lessons/${lesson._id}/toggle-completion`, {
         method: "PUT",
         headers: authHeaders(),
@@ -138,20 +129,25 @@
 
       if (!res.ok) throw new Error("Fallo al guardar");
 
-      // Opcional: Sincronizar con la respuesta del servidor si devuelve el progreso exacto
-      // const data = await res.json(); 
-      // completedLessonIds = data.completedLessons; 
+      // 2. [CORRECCIÓN] Sincronización con el servidor
+      // Es importante usar la respuesta del servidor para confirmar el estado real
+      const data = await res.json(); 
+      if (data.completedLessons) {
+          completedLessonIds = data.completedLessons.map(id => id.toString());
+      }
 
     } catch (err) {
       console.error("Error updating completed:", err);
       
       // 3. Rollback en caso de error (Revertir UI)
       if (!newStatus) {
+        // Si intentamos borrar y falló, lo volvemos a poner
         completedLessonIds = [...completedLessonIds, lesson._id];
       } else {
+        // Si intentamos poner y falló, lo quitamos
         completedLessonIds = completedLessonIds.filter(id => id !== lesson._id);
       }
-      alert("No se pudo guardar el progreso. Intenta de nuevo.");
+      alert("No se pudo guardar el progreso. Verifica tu conexión.");
     }
   }
 
@@ -184,6 +180,7 @@
     </div>
   {:else}
     {#if course}
+      <!-- El componente CourseDetails se actualizará automáticamente gracias a la reactividad de currentProgress -->
       <CourseDetails
         title={course.title || course.name}
         description={course.description}
@@ -198,7 +195,7 @@
     {:else}
       <div class="lessons-list">
         {#each lessons as lesson, i}
-          <!-- [MODIFICADO] Verificación visual usando el array local de IDs -->
+          <!-- Verificación visual usando el array local de IDs -->
           {@const isCompleted = completedLessonIds.includes(lesson._id)}
           
           <div class="lesson-card {isCompleted ? 'is-completed' : ''}">
@@ -216,7 +213,7 @@
               </div>
 
               <div class="lesson-actions" on:click|stopPropagation>
-                <label class="checkbox-container" title="Marcar como completa">
+                <label class="checkbox-container" title={isCompleted ? "Marcar como pendiente" : "Marcar como completa"}>
                   <input
                     type="checkbox"
                     checked={isCompleted}
