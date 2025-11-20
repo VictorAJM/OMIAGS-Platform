@@ -1,15 +1,14 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { scale, fade } from 'svelte/transition';
+  import FileDropZone from './FileDropZone.svelte';
 
-  // Recibimos la lección completa para editar
   export let lesson: any;
 
   const dispatch = createEventDispatcher();
 
-  // Interfaz para tipado interno
   interface ContentFormItem {
-    _id?: string; // Mantenemos el ID si existe para que Mongoose sepa que es actualización
+    _id?: string;
     type: 'video' | 'pdf' | 'text' | 'quiz';
     title: string;
     url?: string;
@@ -21,16 +20,16 @@
   let description = lesson.description || '';
   let loading = false;
   let error = '';
+  
+  let uploadingIndex: number | null = null;
 
-  // Inicializamos contents asegurando una copia profunda para no mutar el prop directamente
-  // y asegurando que los campos existan aunque vengan undefined
   let contents: ContentFormItem[] = (lesson.contents || []).map((c: any) => ({
     _id: c._id,
     type: c.type,
     title: c.title || '',
     url: c.url || '',
-    textContent: c.textContent || '', // Mapeamos el campo nuevo
-    quizId: c.quizId || '' // Mapeamos referencia
+    textContent: c.textContent || '',
+    quizId: c.quizId || ''
   }));
 
   function addContent() {
@@ -41,16 +40,51 @@
     contents = contents.filter((_, i) => i !== index);
   }
 
+  async function handleFileUpload(file: File, index: number) {
+    uploadingIndex = index;
+    error = '';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+
+      const data = await res.json();
+      
+      contents[index].url = data.url;
+      contents[index].title = contents[index].title || file.name;
+
+    } catch (err: any) {
+      console.error(err);
+      error = 'Error al subir el archivo. Intente nuevamente.';
+    } finally {
+      uploadingIndex = null;
+    }
+  }
+
+  function removeFile(index: number) {
+    contents[index].url = '';
+  }
+
   async function handleUpdate() {
     if (!title.trim()) {
       error = 'El título de la lección es obligatorio';
       return;
     }
 
-    // Validar títulos de contenidos
     for (const c of contents) {
       if (!c.title.trim()) {
         error = 'Todos los materiales deben tener un título.';
+        return;
+      }
+      if ((c.type === 'pdf' || c.type === 'video') && !c.url) {
+        error = `El material "${c.title}" requiere un archivo o URL.`;
         return;
       }
     }
@@ -59,21 +93,18 @@
     error = '';
 
     try {
-      // Preparamos la data: Limpiamos campos que no correspondan al tipo seleccionado
       const formattedContents = contents.map(c => {
         const base: any = { title: c.title, type: c.type };
         
-        // Si tiene _id (es un item existente), lo enviamos. Si es nuevo, no.
         if (c._id) base._id = c._id;
 
         if (c.type === 'text') base.textContent = c.textContent;
         else if (c.type === 'quiz') base.quizId = c.quizId;
-        else base.url = c.url; // video o pdf
+        else base.url = c.url;
 
         return base;
       });
 
-      // Endpoint PUT: /api/lessons/:id
       const res = await fetch(`http://localhost:5000/api/lessons/${lesson._id || lesson.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -92,7 +123,7 @@
       const updatedLesson = await res.json();
       
       dispatch('updated', updatedLesson);
-      dispatch('close'); // Cerramos el modal
+      dispatch('close');
       
     } catch (err: any) {
       console.error(err);
@@ -174,6 +205,7 @@
                       placeholder="Contenido de texto..."
                       required
                     ></textarea>
+                  
                   {:else if content.type === 'quiz'}
                     <input 
                       type="text" 
@@ -181,11 +213,28 @@
                       placeholder="ID del Quiz" 
                       required 
                     />
+                  
+                  {:else if content.type === 'pdf'}
+                    {#if content.url}
+                      <div class="file-preview">
+                        <span class="file-link">📄 PDF Cargado</span>
+                        <a href={content.url} target="_blank" class="view-link">Ver</a>
+                        <button type="button" class="btn-text-danger" on:click={() => removeFile(i)}>Cambiar</button>
+                      </div>
+                    {:else}
+                      <FileDropZone 
+                        accept="application/pdf" 
+                        label="Arrastra tu PDF aquí"
+                        uploading={uploadingIndex === i}
+                        on:fileDropped={(e) => handleFileUpload(e.detail, i)}
+                      />
+                    {/if}
+
                   {:else}
                     <input 
                       type="url" 
                       bind:value={content.url} 
-                      placeholder={content.type === 'video' ? 'URL del Video' : 'URL del PDF'} 
+                      placeholder="URL del Video (YouTube, etc)" 
                       required 
                     />
                   {/if}
@@ -201,7 +250,7 @@
         <button type="button" class="btn-secondary" on:click={() => dispatch('close')}>
           Cancelar
         </button>
-        <button type="submit" class="btn-primary" disabled={loading}>
+        <button type="submit" class="btn-primary" disabled={loading || uploadingIndex !== null}>
           {#if loading}Guardando...{:else}Guardar Cambios{/if}
         </button>
       </div>
@@ -211,7 +260,6 @@
 </div>
 
 <style>
-  /* Estilos idénticos al CreateLessonModal para consistencia */
   .modal-backdrop {
     position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 1100;
@@ -274,4 +322,18 @@
   .btn-outline.small:hover { background: #eff6ff; }
 
   .alert-error { background: #fee2e2; color: #b91c1c; padding: 0.75rem; border-radius: 8px; font-size: 0.9rem; border: 1px solid #fecaca; margin-bottom: 1rem; }
+
+  .file-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .file-link { font-weight: 600; color: #1e40af; flex: 1; }
+  .view-link { color: #3b82f6; text-decoration: underline; }
+  .btn-text-danger { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.85rem; text-decoration: underline;}
 </style>

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { scale, fade } from 'svelte/transition';
+  import FileDropZone from './FileDropZone.svelte'; // Import the component
 
   export let courseId: string;
-
   const dispatch = createEventDispatcher();
 
   let title = '';
@@ -11,7 +11,9 @@
   let loading = false;
   let error = '';
   
-  // Interfaz para el manejo interno del formulario
+  // Track uploading state per item to show spinners individually
+  let uploadingIndex: number | null = null;
+
   interface ContentFormItem {
     type: 'video' | 'pdf' | 'text' | 'quiz';
     title: string;
@@ -23,7 +25,6 @@
   let contents: ContentFormItem[] = [];
 
   function addContent() {
-    // Iniciamos con valores vacíos para evitar errores de uncontrolled inputs
     contents = [...contents, { type: 'text', title: '', textContent: '', url: '', quizId: '' }];
   }
 
@@ -31,7 +32,39 @@
     contents = contents.filter((_, i) => i !== index);
   }
 
-  async function handleSubmit() {
+  async function handleFileUpload(file: File, index: number) {
+    uploadingIndex = index;
+    error = '';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+
+      const data = await res.json();
+      
+      contents[index].url = data.url;
+      contents[index].title = contents[index].title || file.name;
+
+    } catch (err) {
+      console.error(err);
+      error = 'Error al subir el archivo. Intente nuevamente.';
+    } finally {
+      uploadingIndex = null;
+    }
+  }
+
+  function removeFile(index: number) {
+    contents[index].url = '';
+  }
+
+ async function handleSubmit() {
     if (!title.trim()) {
       error = 'El título de la lección es obligatorio';
       return;
@@ -93,9 +126,7 @@
     
     <h3 class="modal-title">Nueva Lección</h3>
 
-    {#if error}
-      <div class="alert-error">{error}</div>
-    {/if}
+    {#if error} <div class="alert-error">{error}</div> {/if}
 
     <form on:submit|preventDefault={handleSubmit} class="lesson-form">
       <div class="main-fields">
@@ -119,82 +150,64 @@
       <div class="contents-section">
         <div class="section-header">
           <label>Materiales / Contenido</label>
-          <button type="button" class="btn-outline small" on:click={addContent}>
-            + Agregar Material
-          </button>
+          <button type="button" class="btn-outline small" on:click={addContent}>+ Agregar Material</button>
         </div>
 
-        {#if contents.length === 0}
-          <div class="empty-contents">
-            <p>Esta lección no tiene contenido aún.</p>
-          </div>
-        {:else}
-          <div class="contents-list">
-            {#each contents as content, i}
-              <div class="content-card" transition:scale|local>
+        <div class="contents-list">
+          {#each contents as content, i}
+            <div class="content-card" transition:scale|local>
+              
+              <div class="card-header">
+                 <select bind:value={content.type} class="type-select">
+                   <option value="text">📝 Texto</option>
+                   <option value="video">🎥 Video</option>
+                   <option value="pdf">📄 PDF</option>
+                   <option value="quiz">❓ Quiz</option>
+                 </select>
+                 <button type="button" class="btn-icon delete" on:click={() => removeContent(i)}>✕</button>
+              </div>
+
+              <div class="card-body">
+                <input type="text" class="input-title" bind:value={content.title} placeholder="Título" required />
+
+                {#if content.type === 'text'}
+                  <textarea rows="2" bind:value={content.textContent} placeholder="Contenido..."></textarea>
                 
-                <div class="card-header">
-                   <select bind:value={content.type} class="type-select">
-                    <option value="text">📝 Texto</option>
-                    <option value="video">🎥 Video</option>
-                    <option value="pdf">📄 PDF</option>
-                    <option value="quiz">❓ Quiz</option>
-                  </select>
-                  
-                  <button type="button" class="btn-icon delete" on:click={() => removeContent(i)} title="Eliminar">
-                    ✕
-                  </button>
-                </div>
-
-                <div class="card-body">
-                  <input 
-                    type="text" 
-                    class="input-title"
-                    bind:value={content.title} 
-                    placeholder="Título del material (Ej. Video Intro)" 
-                    required 
-                  />
-
-                  {#if content.type === 'text'}
-                    <textarea 
-                      rows="2" 
-                      bind:value={content.textContent} 
-                      placeholder="Escribe aquí el contenido de la lectura..."
-                      required
-                    ></textarea>
-                  {:else if content.type === 'quiz'}
-                    <input 
-                      type="text" 
-                      bind:value={content.quizId} 
-                      placeholder="ID del Quiz (MongoDB ObjectId)" 
-                      required 
-                    />
+                {:else if content.type === 'quiz'}
+                  <input type="text" bind:value={content.quizId} placeholder="Quiz ID" />
+                
+                {:else if content.type === 'pdf'}
+                  {#if content.url}
+                    <div class="file-preview">
+                      <span class="file-link">📄 PDF Cargado</span>
+                      <a href={content.url} target="_blank" class="view-link">Ver</a>
+                      <button type="button" class="btn-text-danger" on:click={() => removeFile(i)}>Cambiar</button>
+                    </div>
                   {:else}
-                    <input 
-                      type="url" 
-                      bind:value={content.url} 
-                      placeholder={content.type === 'video' ? 'https://youtube.com/...' : 'https://midominio.com/archivo.pdf'} 
-                      required 
+                    <FileDropZone 
+                      accept="application/pdf" 
+                      label="Arrastra tu PDF aquí"
+                      uploading={uploadingIndex === i}
+                      on:fileDropped={(e) => handleFileUpload(e.detail, i)}
                     />
                   {/if}
-                </div>
-
+                  {:else}
+                  <input type="url" bind:value={content.url} placeholder="https://youtube.com/..." />
+                {/if}
               </div>
-            {/each}
-          </div>
-        {/if}
+
+            </div>
+          {/each}
+        </div>
       </div>
 
       <div class="form-actions">
-        <button type="button" class="btn-secondary" on:click={() => dispatch('close')}>
-          Cancelar
-        </button>
-        <button type="submit" class="btn-primary" disabled={loading}>
-          {#if loading}Guardando...{:else}Crear Lección{/if}
-        </button>
+         <button type="submit" class="btn-primary" disabled={loading || uploadingIndex !== null}>
+           Create Lesson
+         </button>
       </div>
-    </form>
 
+    </form>
   </div>
 </div>
 
@@ -261,4 +274,18 @@
   .btn-outline.small:hover { background: #eff6ff; }
 
   .alert-error { background: #fee2e2; color: #b91c1c; padding: 0.75rem; border-radius: 8px; font-size: 0.9rem; border: 1px solid #fecaca; margin-bottom: 1rem; }
+
+  .file-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .file-link { font-weight: 600; color: #1e40af; flex: 1; }
+  .view-link { color: #3b82f6; text-decoration: underline; }
+  .btn-text-danger { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.85rem; text-decoration: underline;}
 </style>
