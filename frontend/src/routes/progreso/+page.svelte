@@ -26,6 +26,7 @@
 
   onMount(async () => {
     try {
+      // 1. Fetch User
       const userRes = await fetch("http://localhost:5000/api/auth/me", {
         credentials: "include",
       });
@@ -35,6 +36,7 @@
         viewerType = userData.role;
       }
 
+      // 2. Fetch Courses
       const coursesRes = await fetch("http://localhost:5000/api/courses", {
         credentials: "include",
       });
@@ -42,45 +44,64 @@
 
       const coursesData = await coursesRes.json();
 
+      // 3. Build Detailed Progress
       const detailedCourses = await Promise.all(
         coursesData.map(async (course: any) => {
+          // A. Fetch Lessons for this course
           const lessonsRes = await fetch(
             `http://localhost:5000/api/courses/${course.id}/lessons`,
-            { credentials: "include" },
+            { credentials: "include" }
           );
           const lessonsData = await lessonsRes.json();
 
-          const quizzesRes = await fetch(
-            `http://localhost:5000/api/quizzes?courseId=${course.id}`,
-            { credentials: "include" },
-          );
-          const quizzesData = await quizzesRes.json();
+          // B. Fetch Quizzes & Scores PER LESSON (Since API requires lessonId)
+          const lessonGradesPromises = lessonsData.map(async (lesson: any) => {
+            try {
+              // Fetch quiz for this specific lesson
+              const quizRes = await fetch(
+                `http://localhost:5000/api/quizzes?lessonId=${lesson._id}`,
+                { credentials: "include" }
+              );
+              
+              if (!quizRes.ok) return null;
+              
+              const quizzes = await quizRes.json();
+              
+              // If a quiz exists for this lesson
+              if (quizzes && quizzes.length > 0) {
+                const quiz = quizzes[0]; // Assuming 1 quiz per lesson
+                
+                // Fetch score for this quiz
+                const scoreRes = await fetch(
+                  `http://localhost:5000/api/quizzes/quiz-score?quizId=${quiz._id}`,
+                  { credentials: "include" }
+                );
+                const scoreData = await scoreRes.json();
 
-          const gradesPromises = quizzesData.map(async (quiz: any) => {
-            const scoreRes = await fetch(
-              `http://localhost:5000/api/quizzes/quiz-score?quizId=${quiz._id}`,
-              { credentials: "include" },
-            );
-            const scoreData = await scoreRes.json();
-
-            if (scoreData.status === "Completed") {
-              return {
-                quiz: quiz.title,
-                score: scoreData.score,
-                date: new Date().toISOString(),
-              };
+                if (scoreData.status === "Completed") {
+                  return {
+                    quiz: quiz.title,
+                    score: scoreData.score || 0, // Handle potential NaN from backend
+                    date: new Date().toISOString(), // API doesn't return date, using current
+                  };
+                }
+              }
+            } catch (e) {
+              console.error(`Error fetching quiz for lesson ${lesson._id}`, e);
             }
             return null;
           });
 
-          const recentGrades = (await Promise.all(gradesPromises)).filter(
-            (g) => g !== null,
-          );
+          // Resolve all quiz checks for this course
+          const gradesResults = await Promise.all(lessonGradesPromises);
+          const recentGrades = gradesResults.filter((g) => g !== null);
+
+          // C. Calculate Stats
           const averageGrade =
             recentGrades.length > 0
               ? Math.round(
                   recentGrades.reduce((acc, curr) => acc + curr.score, 0) /
-                    recentGrades.length,
+                    recentGrades.length
                 )
               : 0;
 
@@ -89,7 +110,7 @@
             .map((l: any) => ({ id: l._id, title: l.title }));
 
           const completedCount = lessonsData.filter(
-            (l: any) => l.completed,
+            (l: any) => l.completed
           ).length;
 
           return {
@@ -102,7 +123,7 @@
             recentGrades: recentGrades,
             averageGrade: averageGrade,
           };
-        }),
+        })
       );
 
       coursesProgress = detailedCourses;
@@ -117,18 +138,18 @@
       : Math.round(
           coursesProgress.reduce(
             (sum, course) => sum + (course.progress || 0),
-            0,
-          ) / coursesProgress.length,
+            0
+          ) / coursesProgress.length
         );
 
   $: totalCompleted = coursesProgress.reduce(
     (sum, course) => sum + (course.completedLessons || 0),
-    0,
+    0
   );
 
   $: totalPending = coursesProgress.reduce(
     (sum, course) => sum + (course.pendingLessons?.length || 0),
-    0,
+    0
   );
 
   $: paginatedPendingLessons = (() => {
@@ -137,7 +158,7 @@
         ...lesson,
         courseTitle: course.title,
         courseId: course.id,
-      })),
+      }))
     );
 
     const startIndex = (currentPendingPage - 1) * itemsPerPage;
@@ -152,11 +173,11 @@
         ...grade,
         courseTitle: course.title,
         courseId: course.id,
-      })),
+      }))
     );
 
     allGrades.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
     const startIndex = (currentGradesPage - 1) * itemsPerPage;
@@ -167,13 +188,13 @@
 
   $: totalPendingLessons = coursesProgress.reduce(
     (sum, course) => sum + course.pendingLessons.length,
-    0,
+    0
   );
   $: totalPendingPages = Math.ceil(totalPendingLessons / itemsPerPage);
 
   $: totalRecentGrades = coursesProgress.reduce(
     (sum, course) => sum + course.recentGrades.length,
-    0,
+    0
   );
   $: totalGradesPages = Math.ceil(totalRecentGrades / itemsPerPage);
 
@@ -300,9 +321,9 @@
               >
                 {grade.score}%
               </div>
-              <span class="grade-date">
+              <div class="grade-date">
                 {new Date(grade.date).toLocaleDateString("es-ES")}
-              </span>
+              </div>
             </div>
           {:else}
             <div class="no-items">

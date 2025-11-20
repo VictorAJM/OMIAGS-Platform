@@ -10,7 +10,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const { lessonId } = req.query;
-
+    
     if (!lessonId) {
       return res
         .status(400)
@@ -29,7 +29,6 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/quizzes/list
-// Get a list of all quizzes
 router.get("/list", async (req, res) => {
   try {
     const quizzes = await Quiz.find().select("_id title description");
@@ -42,18 +41,11 @@ router.get("/list", async (req, res) => {
   }
 });
 
-// GET /api/quizzes/get-score
-// Get the score of a given user on a given quiz
+// GET /api/quizzes/quiz-score
 router.get("/quiz-score", requireAuth, async (req, res) => {
-  let { quizId, userId } = req.query;
+  let { quizId } = req.query;
 
-  if (!userId) {
-    userId = req.user._id;
-  } else if (req.user.role !== "admin") {
-    return res
-      .status(401)
-      .json({ message: "User not allowed to perform this operation." });
-  }
+  const userId = req.user._id;
 
   try {
     const quiz = await Quiz.findById(quizId);
@@ -85,8 +77,7 @@ router.get("/quiz-score", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/quizzes/attemts
-// Returns the number of users that have attempted the given quiz
+// GET /api/quizzes/attempts
 router.get("/attempts", requireAuth, async (req, res) => {
   const { quizId } = req.query;
 
@@ -233,7 +224,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
         quizAttempt = new QuizAttempt({
           userId: req.user._id,
           quizId: quizId,
-          lessonId: quiz.lessonId,
+          lessonId: quiz.lessonId, 
           completed: false,
           questionsAnswered: 0,
           currentScore: 0,
@@ -257,7 +248,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-                JSON.stringify([...question.correctAnswer].sort());
+              JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
@@ -288,22 +279,15 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
     console.error(err);
     return res
       .status(500)
-      .json({ message: "Server error while registering answer." });
+      .json({ message: "Server error while creating quiz." });
   }
 });
 
-// TODO: REMOVE ON PROD
-// This is only for bulk attempt creation
 router.post("/no-auth-submit-answer", async (req, res) => {
   try {
     const { quizId, userId, questionIndex, answer } = req.body;
 
-    if (
-      quizId === null ||
-      userId === null ||
-      questionIndex === null ||
-      answer == null
-    ) {
+    if (quizId === null || userId === null || questionIndex === null || answer == null) {
       return res.status(400).json({
         message:
           "Missing required fields: quizId, questionIndex and answer are required.",
@@ -322,7 +306,7 @@ router.post("/no-auth-submit-answer", async (req, res) => {
         quizAttempt = new QuizAttempt({
           userId: userId,
           quizId: quizId,
-          lessonId: quiz.lessonId,
+          lessonId: quiz.lessonId, 
           completed: false,
           questionsAnswered: 0,
           currentScore: 0,
@@ -346,7 +330,7 @@ router.post("/no-auth-submit-answer", async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-                JSON.stringify([...question.correctAnswer].sort());
+              JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
