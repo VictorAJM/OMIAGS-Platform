@@ -231,8 +231,8 @@
 <style>
   /* --- Modo oscuro consistente --- */
   :global(body) {
-    background: #0b1020;
-    color: #e8ecf3;
+    background: #f9fafb;
+    color: #1a1a1b;
   }
 
   /* Contenedor */
@@ -263,21 +263,21 @@
   .page-header h2 {
     font-size: 2rem;
     font-weight: 600;
-    color: #e8ecf3;
+    color: #202020;
     margin-bottom: 0.5rem;
   }
   .page-header p {
     font-size: 1rem;
-    color: #a6b0c3;
+    color: #424242;
   }
 
   /* Flash message */
   .flash {
     margin-top: 0.75rem;
     display: inline-block;
-    background: rgba(99, 102, 241, 0.15);
-    border: 1px solid rgba(99, 102, 241, 0.35);
-    color: #c7c9ff;
+    background: rgba(202, 203, 223, 0.11);
+    border: 1px solid rgba(132, 133, 196, 0.144);
+    color: #000000;
     padding: 0.5rem 0.75rem;
     border-radius: 10px;
   }
