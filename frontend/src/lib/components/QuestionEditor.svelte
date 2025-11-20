@@ -42,6 +42,7 @@
         question.correctAnswer.push(option);
       }
       question.correctAnswer = question.correctAnswer;
+    } else {
       question.correctAnswer = option;
     }
   }

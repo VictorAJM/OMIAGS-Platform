@@ -243,6 +243,8 @@
       return "Please add at least one question.";
     }
 
+    console.log(quizData);
+
     for (let i = 0; i < quizData.questions.length; i++) {
       const q = quizData.questions[i];
 
@@ -258,7 +260,7 @@
           !Array.isArray(q.correctAnswer) ||
           q.correctAnswer.length === 0
         ) {
-          return `Question ${i + 1} must have at least one correct answer selected.`;
+          return `Question ${i + 1} must have at least one correct answer selected. 1`;
         }
       } else {
         if (
@@ -276,7 +278,7 @@
         )
       ) {
         if (!q.options || q.options.length < 2) {
-          return `Question ${i + 1} must have at least two options.`;
+          return `Question ${i + 1} must have at least two options. 3`;
         }
         // Check for empty options
         if (
@@ -284,7 +286,7 @@
             (/** @type {string} */ opt) => !opt || opt.trim() === "",
           )
         ) {
-          return `Question ${i + 1} has empty options. Please fill or remove them.`;
+          return `Question ${i + 1} has empty options. Please fill or remove them. 4`;
         }
       }
     }
