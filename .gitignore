@@ -12,6 +12,7 @@ frontend/dist/
 # Backend build artifacts (if using transpilers later)
 backend/dist/
 backend/build/
+backend/uploads/*
 
 # Environment files
 *.env
