@@ -130,7 +130,7 @@ router.put("/:id/toggle-completion", requireAuth, async (req, res) => {
 
     // Helper to check if ID exists (handles ObjectId vs String comparison)
     const isLessonCompleted = enrollment.completedLessons.some(
-      (id) => id.toString() === lessonId
+      (id) => id.toString() === lessonId,
     );
 
     if (completed) {
@@ -141,7 +141,7 @@ router.put("/:id/toggle-completion", requireAuth, async (req, res) => {
     } else {
       // Filter out the lesson
       enrollment.completedLessons = enrollment.completedLessons.filter(
-        (id) => id.toString() !== lessonId
+        (id) => id.toString() !== lessonId,
       );
     }
 
@@ -151,7 +151,6 @@ router.put("/:id/toggle-completion", requireAuth, async (req, res) => {
       message: completed ? "Marked complete" : "Marked incomplete",
       completedLessons: enrollment.completedLessons,
     });
-
   } catch (err) {
     console.error("Error toggling completion:", err);
     res.status(500).json({ message: "Server error" });
