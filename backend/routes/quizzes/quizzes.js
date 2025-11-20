@@ -66,6 +66,8 @@ router.get("/quiz-score", requireAuth, async (req, res) => {
       status = quizAttempt.completed ? "Started" : "Completed";
       score = (quizAttempt.currentScore / quiz.maxScore) * 100;
       score = parseFloat(score.toFixed(2));
+
+      console.log(score);
     }
 
     return res.json({ status, score });

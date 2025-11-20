@@ -1,5 +1,12 @@
 <script lang="ts">
-  export let student;
+  export let student: {
+    name: string;
+    email: string;
+    courses: string[];
+    totalCourses: number;
+    lessonProgress: number; // Avance en contenido
+    quizAverage: number;    // Nota promedio
+  };
 
   // Helper para obtener las iniciales
   const initials = student.name
@@ -9,14 +16,15 @@
     .join('')
     .toUpperCase();
 
-  // Helper para determinar el estado (color)
-  const getStatusColor = (p) => {
-    if (p >= 80) return 'success';
-    if (p >= 50) return 'warning';
+  // Helper para determinar el estado basado en la nota (Quizzes)
+  const getGradeColor = (score: number) => {
+    if (score >= 80) return 'success';
+    if (score >= 60) return 'warning';
     return 'danger';
   };
 
-  const status = getStatusColor(student.progress);
+  // El color del badge y la barra de notas depende del promedio de quizzes
+  const gradeStatus = getGradeColor(student.quizAverage);
   
   // Calculamos cuántos cursos quedan ocultos
   const remainingCourses = student.totalCourses - student.courses.length;
@@ -34,8 +42,8 @@
       </div>
     </div>
     
-    <div class="progress-badge {status}">
-      {student.progress}%
+    <div class="grade-badge {gradeStatus}" title="Promedio de Quizzes">
+      {student.quizAverage}%
     </div>
   </div>
 
@@ -57,16 +65,33 @@
   </div>
 
   <div class="card-footer">
-    <div class="progress-info">
-      <span class="label">Progreso General</span>
-      <span class="value {status}">{student.progress}/100</span>
+    
+    <div class="metric-group">
+      <div class="progress-info">
+        <span class="label">Lecciones Vistas</span>
+        <span class="value text-blue">{student.lessonProgress}%</span>
+      </div>
+      <div class="progress-track">
+        <div 
+          class="progress-fill bg-blue" 
+          style="width: {student.lessonProgress}%"
+        ></div>
+      </div>
     </div>
-    <div class="progress-track">
-      <div 
-        class="progress-fill {status}" 
-        style="width: {student.progress}%"
-      ></div>
+
+    <div class="metric-group">
+      <div class="progress-info">
+        <span class="label">Promedio Quizzes</span>
+        <span class="value {gradeStatus}">{student.quizAverage}%</span>
+      </div>
+      <div class="progress-track">
+        <div 
+          class="progress-fill {gradeStatus}" 
+          style="width: {student.quizAverage}%"
+        ></div>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -87,7 +112,7 @@
   .student-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border-color: #e2e8f0;
+    border-color: #cbd5e0;
   }
 
   /* HEADER */
@@ -95,13 +120,14 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.2rem;
   }
 
   .student-profile {
     display: flex;
     align-items: center;
     gap: 1rem;
+    overflow: hidden; /* Para textos largos */
   }
 
   .avatar {
@@ -116,6 +142,7 @@
     font-weight: 700;
     font-size: 1rem;
     box-shadow: 0 2px 5px rgba(118, 75, 162, 0.3);
+    flex-shrink: 0;
   }
 
   .info h3 {
@@ -124,19 +151,28 @@
     color: #1a202c;
     font-weight: 600;
     line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
   }
 
   .info p {
     margin: 4px 0 0 0;
     color: #718096;
     font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
   }
 
-  .progress-badge {
+  .grade-badge {
     font-size: 0.85rem;
     font-weight: 700;
     padding: 0.35rem 0.75rem;
     border-radius: 20px;
+    flex-shrink: 0;
   }
 
   /* BODY */
@@ -183,25 +219,26 @@
     border-color: #cbd5e0;
   }
 
-  .student-card:hover .course-pill {
-    background: #edf2f7;
-    border-color: #e2e8f0;
-  }
-  
-  .student-card:hover .course-pill.more {
-    background: #cbd5e0;
-  }
-
-  /* FOOTER */
+  /* FOOTER (Metrics) */
   .card-footer {
     margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* Espacio entre las dos barras */
+    padding-top: 1rem;
+    border-top: 1px solid #f7fafc;
+  }
+
+  .metric-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
   }
 
   .progress-info {
     display: flex;
     justify-content: space-between;
-    font-size: 0.85rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
   }
 
   .progress-info .label {
@@ -224,10 +261,15 @@
   .progress-fill {
     height: 100%;
     border-radius: 3px;
-    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* COLORES DE ESTADO */
+  /* COLORES */
+  /* Lecciones (Azul Neutro) */
+  .text-blue { color: #3182ce; }
+  .bg-blue { background-color: #4299e1; }
+
+  /* Notas (Semántico) */
   .success { background-color: #c6f6d5; color: #22543d; }
   .progress-fill.success { background-color: #48bb78; }
   .value.success { color: #2f855a; background: transparent; }
@@ -240,4 +282,4 @@
   .progress-fill.danger { background-color: #f56565; }
   .value.danger { color: #c53030; background: transparent; }
 
-</style>
+</style>  
