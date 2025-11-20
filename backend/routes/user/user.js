@@ -90,38 +90,4 @@ router.get("/", async (req, res) => {
   }
 });
 
-// PUT /api/users/:userId/password
-router.put("/:userId/password", async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: "Both passwords are required." });
-    }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    const valid = await user.validatePassword(currentPassword);
-    if (!valid) {
-      return res
-        .status(401)
-        .json({ message: "Current password is incorrect." });
-    }
-
-    user.password = newPassword; // pre('save') lo hashea automáticamente
-    await user.save();
-
-    return res.json({ message: "Password updated successfully." });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      message: "Server error while updating password.",
-    });
-  }
-});
-
 export default router;

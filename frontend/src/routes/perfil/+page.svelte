@@ -2,20 +2,34 @@
   import NavBar from "../../lib/components/NavBar.svelte";
   import ProfileInfo from "../../lib/components/ProfileInfo.svelte";
   import ProfileSettings from "../../lib/components/ProfileSettings.svelte";
+  import SecurityCard from "../../lib/components/PasswordChangeCard.svelte";
   import { onMount } from "svelte";
 
   let username = "";
   let viewerType = "student";
   let userId = "";
-  let email = "";
-  let password = "********";
-  let notifications = true;
 
-  onMount(async () => {
-    const token = document.cookie
+  let profile = {
+    name: "",
+    email: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  };
+
+  export let showPasswordForm = false;
+  let saveMessage = "";
+
+  // Utilidad para obtener token JWT de la cookie "session"
+  function getToken() {
+    return document.cookie
       .split("; ")
       .find((row) => row.startsWith("session="))
       ?.split("=")[1];
+  }
+
+  onMount(async () => {
+    const token = getToken();
 
     if (!token) {
       window.location.href = "/login";
@@ -28,31 +42,97 @@
       });
 
       if (userRes.status === 401) {
-        document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie =
+          "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         window.location.href = "/login";
         return;
       }
 
       const userData = await userRes.json();
-      username = userData.name;
-      email = userData.email;
+      profile.name = userData.name;
+      profile.email = userData.email;
       userId = userData.id;
       viewerType = userData.role || "student";
     } catch (err) {
       console.error("Failed to fetch user data", err);
     }
   });
+
+  async function changePassword() {
+    const token = getToken();
+    if (!token) return;
+
+    if (
+      !profile.currentPassword ||
+      !profile.newPassword ||
+      profile.newPassword !== profile.confirmPassword
+    ) {
+      saveMessage = "❌ Verifica las contraseñas";
+      setTimeout(() => (saveMessage = ""), 3000);
+      return;
+    }
+
+    try {
+      // Obtener ID del usuario usando /api/auth/me
+      const me = await fetch("http://localhost:5000/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!me.ok) throw new Error("No se pudo validar token");
+      const user = await me.json();
+
+      // Llamar endpoint real para cambiar contraseña
+      const res = await fetch(
+        `http://localhost:5000/api/auth/change-password`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            oldPassword: profile.currentPassword,
+            newPassword: profile.newPassword,
+          }),
+        },
+      );
+
+      if (!res.ok) throw new Error(await res.text());
+
+      saveMessage = "✅ Contraseña actualizada";
+
+      profile.currentPassword = "";
+      profile.newPassword = "";
+      profile.confirmPassword = "";
+      showPasswordForm = false;
+
+      setTimeout(() => (saveMessage = ""), 3000);
+    } catch (e) {
+      console.error(e);
+      saveMessage = "❌ Error al actualizar contraseña";
+      setTimeout(() => (saveMessage = ""), 3000);
+    }
+  }
 </script>
 
 <NavBar {viewerType} {username} />
 
 <main class="profile-page">
-  <h2 class="title">Perfil del Alumno</h2>
-  <p class="subtitle text-gray-500 mb-6">ID: {userId}</p>
+  <div class="page-header">
+    <h2 class="title">Perfil del Alumno</h2>
+    <p class="subtitle text-gray-500 mb-6">ID: {userId}</p>
+    {#if saveMessage}<div class="flash">{saveMessage}</div>{/if}
+  </div>
 
   <div class="grid gap-8 md:grid-cols-2">
-    <ProfileInfo bind:username bind:email bind:password />
-    <ProfileSettings bind:notifications />
+    <ProfileInfo bind:profile />
+    <SecurityCard
+      {profile}
+      {showPasswordForm}
+      toggleForm={() => (showPasswordForm = !showPasswordForm)}
+      on:submitPassword={changePassword}
+      on:changePassword={changePassword}
+    />
   </div>
 </main>
 
@@ -71,5 +151,32 @@
 
   .subtitle {
     font-size: 0.9rem;
+  }
+
+  /* Header */
+  .page-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+  .page-header h2 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #202020;
+    margin-bottom: 0.5rem;
+  }
+  .page-header p {
+    font-size: 1rem;
+    color: #424242;
+  }
+
+  /* Flash message */
+  .flash {
+    margin-top: 0.75rem;
+    display: inline-block;
+    background: rgba(202, 203, 223, 0.11);
+    border: 1px solid rgba(132, 133, 196, 0.144);
+    color: #000000;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
   }
 </style>

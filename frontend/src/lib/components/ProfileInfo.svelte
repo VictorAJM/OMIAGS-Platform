@@ -1,7 +1,5 @@
 <script lang="ts">
-  export let username: string;
-  export let email: string;
-  export let password: string;
+  export let profile;
 </script>
 
 <section class="card">
@@ -15,14 +13,13 @@
   <div class="info-grid">
     <div class="info-item">
       <span class="label">Nombre</span>
-      <span class="value">{username}</span>
+      <span class="value">{profile.name}</span>
     </div>
 
     <div class="info-item">
       <span class="label">Correo electrónico</span>
-      <span class="value">{email}</span>
+      <span class="value">{profile.email}</span>
     </div>
-
   </div>
 </section>
 
@@ -32,7 +29,9 @@
     padding: 2rem;
     border-radius: 1rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
     margin-bottom: 5px;
   }
 
@@ -82,7 +81,6 @@
     border-radius: 0.5rem;
     border: 1px solid #e5e7eb;
   }
-
 
   @media (min-width: 640px) {
     .info-grid {
