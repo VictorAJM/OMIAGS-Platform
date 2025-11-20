@@ -1,22 +1,25 @@
 import mongoose from "mongoose";
 
-const courseSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  description: String,
-  
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
+const courseSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    description: String,
 
-  category: {
-    type: String,
-    enum: ["Secundaria", "Preparatoria"],
-    required: true,
-  },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
 
-  progress: { type: Number, default: 0 },
-}, { timestamps: true });
+    category: {
+      type: String,
+      enum: ["Secundaria", "Preparatoria"],
+      required: true,
+    },
+
+    progress: { type: Number, default: 0 },
+  },
+  { timestamps: true },
+);
 
 export default mongoose.model("Course", courseSchema);

@@ -263,7 +263,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-              JSON.stringify([...question.correctAnswer].sort());
+                JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
@@ -306,7 +306,12 @@ router.post("/no-auth-submit-answer", async (req, res) => {
     const { quizId, userId, questionIndex, answer } = req.body;
 
     // Basic validation to ensure required fields are present
-    if (quizId === null || userId === null || questionIndex === null || answer == null) {
+    if (
+      quizId === null ||
+      userId === null ||
+      questionIndex === null ||
+      answer == null
+    ) {
       return res.status(400).json({
         message:
           "Missing required fields: quizId, questionIndex and answer are required.",
@@ -349,7 +354,7 @@ router.post("/no-auth-submit-answer", async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-              JSON.stringify([...question.correctAnswer].sort());
+                JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
