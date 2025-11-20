@@ -2,30 +2,33 @@ import mongoose from "mongoose";
 import Lesson from "./Lesson.js";
 import Course from "./Course.js";
 
+const enrollmentSchema = new mongoose.Schema(
+  {
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    course: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+      required: true,
+    },
 
-const enrollmentSchema = new mongoose.Schema({
-  student: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
+    completedLessons: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Lesson",
+      },
+    ],
+
+    studentProgress: {
+      type: Number,
+      default: 0,
+    },
   },
-  course: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Course",
-    required: true,
-  },
-
-  completedLessons: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Lesson"
-  }],
-
-  studentProgress: {
-    type: Number,
-    default: 0
-  }
-}, { timestamps: true });
-
+  { timestamps: true },
+);
 
 enrollmentSchema.pre("save", async function (next) {
   if (!this.isModified("completedLessons")) return next();
@@ -44,7 +47,6 @@ enrollmentSchema.pre("save", async function (next) {
   }
 });
 
-
 enrollmentSchema.post("save", async function (doc, next) {
   try {
     const stats = await mongoose.model("Enrollment").aggregate([
@@ -52,18 +54,18 @@ enrollmentSchema.post("save", async function (doc, next) {
       {
         $group: {
           _id: "$course",
-          averageProgress: { $avg: "$studentProgress" }
-        }
-      }
+          averageProgress: { $avg: "$studentProgress" },
+        },
+      },
     ]);
     if (stats.length > 0) {
       await Course.findByIdAndUpdate(doc.course, {
-        progress: Math.round(stats[0].averageProgress * 100) / 100
+        progress: Math.round(stats[0].averageProgress * 100) / 100,
       });
     } else {
       await Course.findByIdAndUpdate(doc.course, { progress: 0 });
     }
-    if (next) next(); 
+    if (next) next();
   } catch (error) {
     console.error("Error actualizando el progreso del curso:", error);
   }

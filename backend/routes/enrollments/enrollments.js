@@ -10,8 +10,11 @@ const getUserIdFromRequest = (req) => {
     if (!authHeader) return null;
     const token = authHeader.split(" ")[1];
     if (!token) return null;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "tu_secreto_jwt");
-    return decoded.id || decoded._id || decoded.userId; 
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "tu_secreto_jwt",
+    );
+    return decoded.id || decoded._id || decoded.userId;
   } catch (error) {
     console.error("Error decodificando token:", error.message);
     return null;
@@ -23,30 +26,31 @@ const getUserIdFromRequest = (req) => {
 router.get("/status/:courseId", async (req, res) => {
   try {
     const userId = getUserIdFromRequest(req);
-    
+
     if (!userId) {
-      return res.status(401).json({ message: "Acceso no autorizado. Token inválido o ausente." });
+      return res
+        .status(401)
+        .json({ message: "Acceso no autorizado. Token inválido o ausente." });
     }
 
     const { courseId } = req.params;
 
-    const enrollment = await Enrollment.findOne({ 
-      student: userId, 
-      course: courseId 
+    const enrollment = await Enrollment.findOne({
+      student: userId,
+      course: courseId,
     });
 
     if (!enrollment) {
-      return res.json({ 
-        completedLessons: [], 
-        studentProgress: 0 
+      return res.json({
+        completedLessons: [],
+        studentProgress: 0,
       });
     }
 
     res.json({
       completedLessons: enrollment.completedLessons,
-      studentProgress: enrollment.studentProgress
+      studentProgress: enrollment.studentProgress,
     });
-
   } catch (err) {
     console.error("Error obteniendo estado de inscripción:", err);
     res.status(500).json({ message: "Error del servidor" });
