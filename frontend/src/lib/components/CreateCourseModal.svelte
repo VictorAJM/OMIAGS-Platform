@@ -60,7 +60,7 @@
           title,
           description,
           category,
-          accessList: students, // 🔑 Envía la lista de emails de estudiantes
+          accessList: students,
         })
       });
 

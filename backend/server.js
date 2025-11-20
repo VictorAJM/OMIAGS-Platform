@@ -7,6 +7,7 @@ import lessonRoutes from "./routes/lessons/lessons.js";
 import quizRoutes from "./routes/quizzes/quizzes.js";
 import authRoutes from "./routes/auth/auth.js";
 import userRoutes from "./routes/user/user.js";
+import enrollmentRoutes from "./routes/enrollments/enrollments.js";
 
 dotenv.config();
 const app = express();
@@ -37,6 +38,7 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/quizzes", quizRoutes);
 app.use("/api/user", userRoutes);
+app.use("api/enrollments", enrollmentRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 API lista en puerto ${PORT}`));

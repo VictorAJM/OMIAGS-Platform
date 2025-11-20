@@ -5,12 +5,14 @@
   import CreateCourseModal from '$lib/components/CreateCourseModal.svelte';
   import LessonsModal from '$lib/components/LessonsModal.svelte';
 
+  // Definición de tipos actualizada
   type Course = {
-    id: number | string;
-    name: string;
+    id: string;
+    title: string;
     description: string;
-    level: string;
+    category: string;
     students: string[];
+    studentsCount?: number; // Nuevo campo para mostrar el total
     lessons: number;
     image?: string;
     color?: string;
@@ -35,10 +37,12 @@
   });
 
   const openCreateModal = () => (showCreateModal = true);
+  
   const openLessonsModal = (course: Course) => {
     selectedCourse = course;
     showLessonsModal = true;
   };
+
   const closeModals = () => {
     showCreateModal = false;
     showLessonsModal = false;
@@ -52,57 +56,79 @@
       return;
     }
 
-    const res = await fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
-    if (res.status === 401) {
-      document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      window.location.href = '/login';
-      return;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
+      if (res.status === 401) {
+        document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        window.location.href = '/login';
+        return;
+      }
+      const data = await res.json();
+      username = data.name;
+      viewerType = data.role || 'student';
+    } catch (error) {
+      console.error("Auth error:", error);
     }
-    const data = await res.json();
-    username = data.name;
-    viewerType = data.role || 'student';
   }
 
   async function loadCourses() {
-    const res = await fetch(`${API_BASE}/api/courses`, { headers: authHeaders() });
-    if (res.ok) {
-      const list = await res.json();
-      // Normaliza campos mínimos que usa la UI
-      courses = list.map((c: any) => ({
-        id: c.id,
-        name: c.name,          // cambiar a title
-        description: c.description || "",
-        level: c.category,      // cambiar a category
-        students: c.students,
-        lessons: c.lessons,
-        image: "📚",
-        color: "#3182ce",
-      }));
+    try {
+      const res = await fetch(`${API_BASE}/api/courses`, { headers: authHeaders() });
+      if (res.ok) {
+        const list = await res.json();
+        
+        // Mapeo de datos del backend
+        courses = list.map((c: any) => ({
+          id: c.id,
+          title: c.name || c.title,
+          description: c.description || "",
+          category: c.category,
+          students: new Array(c.studentsCount || 0).fill('student'), 
+          studentsCount: c.studentsCount || 0,
+          lessons: c.lessons || 0,
+          image: "📚",
+          color: "#3182ce",
+        }));
+      }
+    } catch (err) {
+      console.error("Error loading courses:", err);
     }
   }
 
-  async function handleCreated(e: CustomEvent<Course>) {
-    const payload = e.detail;
+  // Maneja la creación localmente (no llama a API de nuevo)
+  function handleCreated(e: CustomEvent<any>) {
+    const newCourseData = e.detail;
 
-    const res = await fetch(`${API_BASE}/api/courses`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify(payload)
-    });
+    const newCourse: Course = {
+      id: newCourseData.id,
+      title: newCourseData.title,
+      description: newCourseData.description,
+      category: newCourseData.category,
+      // Al crear, sí tenemos la lista real de estudiantes, así que la usamos
+      students: newCourseData.students || [],
+      studentsCount: (newCourseData.students || []).length,
+      lessons: 0,
+      image: "📚",
+      color: "#3182ce"
+    };
 
-    if (res.ok) {
-      closeModals();
-      await loadCourses();
-    }
+    courses = [...courses, newCourse];
+    closeModals();
   }
 
-  async function deleteCourse(id: number | string) {
-    const res = await fetch(`${API_BASE}/api/courses/${id}`, {
-      method: 'DELETE',
-      headers: authHeaders()
-    });
-    if (res.ok) {
-      courses = courses.filter((c) => c.id !== id);
+  async function deleteCourse(id: string) {
+    if(!confirm("¿Estás seguro de eliminar este curso?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/courses/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders()
+      });
+      if (res.ok) {
+        courses = courses.filter((c) => c.id !== id);
+      }
+    } catch (error) {
+      console.error("Error deleting course:", error);
     }
   }
 
@@ -136,11 +162,7 @@
   {#if showCreateModal}
     <CreateCourseModal
       on:close={() => showCreateModal = false}
-      on:created={async (e) => {
-        const newCourse = e.detail;
-        courses = [...courses, newCourse]; // refrescar lista
-        await loadCourses();
-      }}
+      on:created={handleCreated}
     />
   {/if}
 
@@ -149,7 +171,7 @@
         {selectedCourse}
         on:close={closeModals}
         on:lessonsUpdated={() => {
-            loadCourses();   // actualiza UI
+            loadCourses();   
         }}
     />
   {/if}
@@ -162,6 +184,7 @@
     margin-left: auto;
     margin-right: auto;
     padding: 0 1rem;
+    font-family: 'Inter', sans-serif;
   }
 
   .page-header {

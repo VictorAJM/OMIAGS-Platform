@@ -113,22 +113,59 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// PUT /api/lessons/:id/completed
-router.put("/:id/completed", async (req, res) => {
+// PUT /api/lessons/:id/toggle-completion
+router.put("/:id/toggle-completion", async (req, res) => {
   try {
-    const { completed } = req.body;
+    const { userId, completed } = req.body; 
+    // NOTA: En una app real, 'userId' debería venir de req.user (JWT), no del body.
+
+    if (!userId) return res.status(400).json({ message: "User ID required" });
     if (typeof completed !== "boolean") {
       return res.status(400).json({ message: "Completed must be boolean" });
     }
-    const updatedLesson = await Lesson.findByIdAndUpdate(
-      req.params.id,
-      { completed },
-      { new: true }
-    );
-    if (!updatedLesson) return res.status(404).json({ message: "Lesson not found" });
-    res.json(updatedLesson);
+
+    const lessonId = req.params.id;
+
+    // 1. Buscamos la lección para saber a qué curso pertenece
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) return res.status(404).json({ message: "Lesson not found" });
+
+    // 2. Buscamos la inscripción (Enrollment) de este usuario en ese curso
+    const enrollment = await Enrollment.findOne({ 
+      student: userId, 
+      course: lesson.courseId 
+    });
+
+    if (!enrollment) {
+      return res.status(404).json({ message: "Student is not enrolled in this course" });
+    }
+
+    // 3. Actualizamos el array completedLessons
+    if (completed) {
+      // Si queremos marcar como completa, añadimos el ID si no existe (evita duplicados)
+      if (!enrollment.completedLessons.includes(lessonId)) {
+        enrollment.completedLessons.push(lessonId);
+      }
+    } else {
+      // Si queremos desmarcar, filtramos el array para quitar este ID
+      enrollment.completedLessons = enrollment.completedLessons.filter(
+        (id) => id.toString() !== lessonId
+      );
+    }
+
+    // 4. GUARDAMOS. Esto es CRÍTICO.
+    // Al hacer .save(), se disparan los 'pre' y 'post' hooks definidos en el modelo Enrollment
+    // que recalculan el % del alumno y el promedio del curso automáticamente.
+    await enrollment.save();
+
+    res.json({ 
+      message: completed ? "Lesson marked as complete" : "Lesson marked as incomplete",
+      studentProgress: enrollment.studentProgress, // Devolvemos el nuevo progreso
+      completedLessons: enrollment.completedLessons
+    });
+
   } catch (err) {
-    console.error("Error updating lesson:", err);
+    console.error("Error toggling completion:", err);
     res.status(500).json({ message: "Server error" });
   }
 });

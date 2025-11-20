@@ -8,18 +8,22 @@
 
   let course = null;
   let lessons = [];
+  // [NUEVO] Estado local para saber qué lecciones completó ESTE usuario
+  let completedLessonIds = []; 
+  
   let loading = true;
   let error = "";
 
   let courseId = $page.params.id;
   let expandedLesson = null;
 
-  // Cálculo reactivo del progreso
+  // [NUEVO] Cálculo reactivo del progreso basado en el array de IDs completados
   $: totalLessons = lessons.length;
-  $: completedCount = lessons.filter(l => l.completed).length;
+  $: completedCount = completedLessonIds.length;
   $: currentProgress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
   let username = '';
+  let userId = null; // [NUEVO] Necesario para guardar progreso
   let viewerType = 'student';
 
   const API_BASE = 'http://localhost:5000';
@@ -47,16 +51,30 @@
     }
     const data = await res.json();
     username = data.name;
+    userId = data._id; // [NUEVO] Guardamos ID para usarlo en el toggle
     viewerType = data.role || 'student';
   }
 
+  // [NUEVO] Función para cargar el progreso inicial del estudiante
+  // Nota: Necesitarás crear un endpoint GET en tu backend tipo /api/enrollments/status/:courseId
+  // Si no existe aún, el progreso empezará visualmente en 0 hasta que hagas click.
+  async function loadEnrollmentStatus() {
+    try {
+      // Ejemplo de endpoint hipotético para traer lo que el usuario ya completó al cargar la página
+      const res = await fetch(`${API_BASE}/api/enrollments/status/${courseId}`, { headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        completedLessonIds = data.completedLessons || [];
+      }
+    } catch (err) {
+      console.warn("No se pudo cargar el estado inicial de la inscripción", err);
+    }
+  }
+
   function openContent(content) {
-    // Si es texto corto, quizás quieras mostrarlo ahí mismo, pero 
-    // para consistencia mandamos todo a la nueva página.
     if (content.type === 'quiz') {
-       goto(`/quiz/${content.quizId}`); // O a /content/${content._id} si quieres manejar el quiz en el viewer
+       goto(`/quiz/${content.quizId}`); 
     } else {
-       // Redirige al nuevo componente creado en el paso 2
        goto(`/content/${content._id}`);
     }
   }
@@ -73,6 +91,11 @@
       if (!lessonRes.ok) throw new Error("Error al cargar lecciones");
       lessons = await lessonRes.json();
 
+      // Intentamos cargar qué lecciones ya estaban completas
+      if (userId) {
+        await loadEnrollmentStatus();
+      }
+
     } catch (err) {
       error = err.message;
     } finally {
@@ -84,46 +107,56 @@
     expandedLesson = expandedLesson === lessonId ? null : lessonId;
   }
 
-  // Para Quizzes o navegación externa
-  function navigateToContent(contentId, type) {
-    if(type === 'quiz') {
-        goto(`/quiz/${contentId}`); // Ajusta la ruta según tu app
-    }
-  }
-
   function goBack() {
     goto('/cursos');
   }
 
+  // [MODIFICADO] Nueva lógica de completado por usuario
   async function toggleCompleted(lesson) {
-    const oldStatus = lesson.completed;
-    const newStatus = !oldStatus;
+    if (!userId) return alert("Debes iniciar sesión.");
+
+    const isCompleted = completedLessonIds.includes(lesson._id);
+    const newStatus = !isCompleted; // Invertir estado actual
     
-    lessons = lessons.map(l => 
-      l._id === lesson._id ? { ...l, completed: newStatus } : l
-    );
+    // 1. Actualización Optimista (UI Update inmediata)
+    if (newStatus) {
+      completedLessonIds = [...completedLessonIds, lesson._id];
+    } else {
+      completedLessonIds = completedLessonIds.filter(id => id !== lesson._id);
+    }
 
     try {
-      const res = await fetch(`${API_BASE}/api/lessons/${lesson._id}/completed`, {
+      // 2. Llamada al nuevo endpoint
+      const res = await fetch(`${API_BASE}/api/lessons/${lesson._id}/toggle-completion`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ completed: newStatus })
+        headers: authHeaders(),
+        body: JSON.stringify({ 
+          userId: userId, 
+          completed: newStatus 
+        })
       });
 
       if (!res.ok) throw new Error("Fallo al guardar");
+
+      // Opcional: Sincronizar con la respuesta del servidor si devuelve el progreso exacto
+      // const data = await res.json(); 
+      // completedLessonIds = data.completedLessons; 
+
     } catch (err) {
       console.error("Error updating completed:", err);
-      lessons = lessons.map(l => 
-        l._id === lesson._id ? { ...l, completed: oldStatus } : l
-      );
-      alert("No se pudo guardar el progreso.");
+      
+      // 3. Rollback en caso de error (Revertir UI)
+      if (!newStatus) {
+        completedLessonIds = [...completedLessonIds, lesson._id];
+      } else {
+        completedLessonIds = completedLessonIds.filter(id => id !== lesson._id);
+      }
+      alert("No se pudo guardar el progreso. Intenta de nuevo.");
     }
   }
 
-  // Helper para transformar URL de Youtube en URL de Embed
   function getYouTubeEmbedUrl(url) {
     if (!url) return null;
-    // RegEx para capturar el ID de youtube (funciona con youtu.be, v=, embed, etc)
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11)
@@ -165,11 +198,14 @@
     {:else}
       <div class="lessons-list">
         {#each lessons as lesson, i}
-          <div class="lesson-card {lesson.completed ? 'is-completed' : ''}">
+          <!-- [MODIFICADO] Verificación visual usando el array local de IDs -->
+          {@const isCompleted = completedLessonIds.includes(lesson._id)}
+          
+          <div class="lesson-card {isCompleted ? 'is-completed' : ''}">
             
             <div class="lesson-header" on:click={() => toggleLesson(lesson._id)}>
               <span class="lesson-number">
-                {#if lesson.completed}✓{:else}{i + 1}{/if}
+                {#if isCompleted}✓{:else}{i + 1}{/if}
               </span>
 
               <div class="lesson-info">
@@ -183,7 +219,7 @@
                 <label class="checkbox-container" title="Marcar como completa">
                   <input
                     type="checkbox"
-                    checked={lesson.completed}
+                    checked={isCompleted}
                     on:change={() => toggleCompleted(lesson)}
                   />
                   <span class="checkmark"></span>
@@ -302,49 +338,8 @@
 
   /* --- ESTILOS DEL CONTENIDO INTERIOR --- */
   .lesson-body { border-top: 1px solid #edf2f7; background: #fcfcfc; padding: 1.5rem; }
-  .contents-container { display: flex; flex-direction: column; gap: 2rem; }
+  .contents-list { display: flex; flex-direction: column; gap: 0.8rem; padding: 0.5rem 0; }
   .no-content { text-align: center; color: #a0aec0; font-style: italic; }
-
-  .content-block { display: flex; flex-direction: column; gap: 0.8rem; }
-  
-  .content-title { 
-    font-size: 1rem; font-weight: 600; color: #4a5568; margin: 0; display: flex; align-items: center; gap: 0.5rem;
-    border-bottom: 1px solid #eee; padding-bottom: 0.5rem;
-  }
-  .content-title .icon { font-size: 1.1rem; }
-
-  /* Video Responsive (16:9) */
-  .video-responsive {
-    position: relative; width: 100%; padding-bottom: 56.25%; /* 16:9 Ratio */
-    background: #000; border-radius: 8px; overflow: hidden;
-  }
-  .video-responsive iframe {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  }
-  .content-alert { padding: 1rem; background: #fff5f5; color: #c53030; border-radius: 6px; font-size: 0.9rem; }
-
-  /* Texto */
-  .text-content {
-    font-size: 1rem; line-height: 1.7; color: #2d3748; background: white;
-    padding: 1rem; border-radius: 8px; border: 1px solid #edf2f7;
-    white-space: pre-wrap; /* Para respetar saltos de línea si es texto plano */
-  }
-
-  /* Cards para PDF y Quiz */
-  .resource-card {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 1rem; border-radius: 8px; text-decoration: none; border: 1px solid #e2e8f0;
-    background: white; transition: all 0.2s; cursor: pointer; width: 100%; text-align: left;
-  }
-  .resource-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-  
-  .resource-card.pdf { border-left: 4px solid #e53e3e; }
-  .resource-card.quiz { border-left: 4px solid #805ad5; }
-
-  .resource-info { display: flex; flex-direction: column; font-size: 0.95rem; color: #2d3748; overflow: hidden; }
-  .resource-info span { font-size: 0.8rem; color: #718096; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
-  .arrow { color: #cbd5e0; font-weight: bold; font-size: 1.2rem; }
-.contents-list { display: flex; flex-direction: column; gap: 0.8rem; padding: 1rem; }
 
   .content-card {
     display: flex; align-items: center; gap: 1rem;
@@ -364,10 +359,10 @@
     width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
     border-radius: 8px; font-size: 1.2rem; flex-shrink: 0;
   }
-  .card-icon.video { background: #fee2e2; color: #991b1b; } /* Rojo suave */
-  .card-icon.pdf { background: #fff7ed; color: #9a3412; }   /* Naranja suave */
-  .card-icon.text { background: #f0f9ff; color: #075985; }  /* Azul suave */
-  .card-icon.quiz { background: #f3e8ff; color: #6b21a8; }  /* Morado suave */
+  .card-icon.video { background: #fee2e2; color: #991b1b; }
+  .card-icon.pdf { background: #fff7ed; color: #9a3412; }
+  .card-icon.text { background: #f0f9ff; color: #075985; }
+  .card-icon.quiz { background: #f3e8ff; color: #6b21a8; }
 
   .card-info { flex-grow: 1; display: flex; flex-direction: column; gap: 0.2rem; }
   
@@ -377,6 +372,4 @@
 
   .card-action { font-size: 1.2rem; color: #cbd5e0; font-weight: bold; }
   .content-card:hover .card-action { color: #3b82f6; }
-
-  .no-content { text-align: center; color: #a0aec0; font-style: italic; padding: 1rem; }
 </style>
