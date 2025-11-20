@@ -263,7 +263,97 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-                JSON.stringify([...question.correctAnswer].sort());
+              JSON.stringify([...question.correctAnswer].sort());
+          }
+        }
+
+        if (quizAttempt.questionsAnswered === quiz.questions.length) {
+          quizAttempt.completed = true;
+        }
+
+        const answerObj = {
+          correct: isCorrect,
+          score: isCorrect ? question.value : 0,
+          answer,
+        };
+
+        quizAttempt.answers.push(answerObj);
+        await quizAttempt.save();
+
+        return res.json({
+          correct: isCorrect,
+          answer: question.correctAnswer,
+        });
+      } else {
+        return res.status(404).json({ message: "Question not found" });
+      }
+    } else {
+      return res.status(404).json({ message: "Quiz not found" });
+    }
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Server error while creating quiz." });
+  }
+});
+
+// TODO: REMOVE ON PROD
+// This is only for bulk attempt creation
+router.post("/no-auth-submit-answer", async (req, res) => {
+  // We will need to add user data here and some validations to store progress and grades
+  try {
+    const { quizId, userId, questionIndex, answer } = req.body;
+    console.log(quizId);
+    console.log(userId);
+    console.log(questionIndex);
+    console.log(answer);
+
+    // Basic validation to ensure required fields are present
+    if (quizId === null || userId === null || questionIndex === null || answer == null) {
+      return res.status(400).json({
+        message:
+          "Missing required fields: quizId, questionIndex and answer are required.",
+      });
+    }
+
+    const quiz = await Quiz.findById(quizId);
+
+    if (quiz) {
+      let quizAttempt = await QuizAttempt.findOne({
+        userId: userId,
+        quizId: quizId,
+      });
+
+      if (!quizAttempt) {
+        quizAttempt = new QuizAttempt({
+          userId: userId,
+          quizId: quizId,
+          courseId: quiz.courseId,
+          completed: false, // Initial status
+          questionsAnswered: 0,
+          currentScore: 0,
+          answers: [],
+        });
+      }
+
+      const question = quiz.questions[questionIndex];
+      if (question) {
+        if (questionIndex !== quizAttempt.questionsAnswered) {
+          return res.status(400).json({ message: "Question not allowed" });
+        }
+
+        quizAttempt.questionsAnswered++;
+
+        let isCorrect = false;
+        if (typeof answer === typeof question.correctAnswer) {
+          if (typeof answer === String) {
+            isCorrect = answer === question.correctAnswer;
+          } else {
+            isCorrect =
+              answer.length === question.correctAnswer.length &&
+              JSON.stringify([...answer].sort()) ===
+              JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
