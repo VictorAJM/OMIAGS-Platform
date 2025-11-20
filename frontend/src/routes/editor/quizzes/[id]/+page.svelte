@@ -31,21 +31,7 @@
    */
   let editorCardElement;
 
-  /**
-   * @type {string | undefined}
-   */
-  let auth_token;
   onMount(async () => {
-    auth_token = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("session="))
-      ?.split("=")[1];
-
-    if (!auth_token) {
-      window.location.href = "/login";
-      return;
-    }
-
     await fetchQuiz();
   });
 
@@ -54,9 +40,7 @@
       const response = await fetch(
         `http://localhost:5000/api/quizzes/${$page.params.id}`,
         {
-          headers: {
-            Authorization: `Bearer ${auth_token}`,
-          },
+          credentials: "include",
         },
       );
 
@@ -214,9 +198,7 @@
       const response = await fetch(
         `http://localhost:5000/api/quizzes/attempts?quizId=${$page.params.id}`,
         {
-          headers: {
-            Authorization: `Bearer ${auth_token}`,
-          },
+          credentials: "include",
         },
       );
 
@@ -337,8 +319,8 @@
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${auth_token}`,
           },
+          credentials: "include",
           body: JSON.stringify(quizPayload),
         },
       );

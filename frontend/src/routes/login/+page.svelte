@@ -1,37 +1,27 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
+  import { goto } from "$app/navigation";
 
-  let email = '';
-  let password = '';
-  let msg = '';
+  let email = "";
+  let password = "";
+  let msg = "";
   let loading = false;
 
   async function handleLogin(e: Event) {
     e.preventDefault();
-    msg = '';
+    msg = "";
     loading = true;
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password })
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
       });
 
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json?.error || 'Error al iniciar sesión');
-      }
-
-      if (json?.token) {
-        document.cookie = `session=${json.token}; path=/; SameSite=Lax`;
-      }
-
-      await goto('/');
+      await goto("/");
     } catch (err: any) {
-      msg = err?.message ?? 'Error al iniciar sesión';
+      msg = err?.message ?? "Error al iniciar sesión";
     } finally {
       loading = false;
     }
@@ -83,8 +73,18 @@
   /* Estilos globales para asegurar el fondo oscuro en toda la página */
   :global(body) {
     margin: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: radial-gradient(circle at top, #1f2937 0, #020617 45%, #000 100%);
+    font-family:
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    background: radial-gradient(
+      circle at top,
+      #1f2937 0,
+      #020617 45%,
+      #000 100%
+    );
     color: #e5e7eb;
     min-height: 100vh;
   }
@@ -156,7 +156,10 @@
     font-weight: 600;
     cursor: pointer;
     font-size: 0.95rem;
-    transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    transition:
+      transform 0.1s ease,
+      box-shadow 0.15s ease,
+      filter 0.15s ease;
   }
 
   .auth-button:hover:not(:disabled) {

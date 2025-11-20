@@ -13,7 +13,11 @@ import enrollmentRoutes from "./routes/enrollments/enrollments.js";
 import uploadRoutes from "./routes/upload/upload.js";
 
 dotenv.config();
+import cookieParser from "cookie-parser";
+
 const app = express();
+
+app.use(cookieParser());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

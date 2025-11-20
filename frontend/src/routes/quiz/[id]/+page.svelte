@@ -18,7 +18,6 @@
 
   let correctAnswers = 0;
   let finalScore = 0;
-  let auth_token;
 
   // --- Reactive Derived State ---
   $: quizId = $page.params.id;
@@ -43,19 +42,9 @@
   }
 
   onMount(async () => {
-    auth_token = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("session="))
-      ?.split("=")[1];
-
-    if (!auth_token) {
-      window.location.href = "/login";
-      return;
-    }
-
     try {
       const res = await fetch(`http://localhost:5000/api/quizzes/${quizId}`, {
-        headers: { Authorization: `Bearer ${auth_token}` },
+        credentials: "include",
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -118,8 +107,8 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${auth_token}`,
           },
+          credentials: "include",
           body: JSON.stringify(answerPayload),
         },
       );
@@ -152,7 +141,7 @@
       const res = await fetch(
         `http://localhost:5000/api/quizzes/quiz-score?quizId=${quizId}`,
         {
-          headers: { Authorization: `Bearer ${auth_token}` },
+          credentials: "include",
         },
       );
       if (res.ok) {

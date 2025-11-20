@@ -1,18 +1,18 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import { scale } from 'svelte/transition';
-  import { slide } from 'svelte/transition';
+  import { createEventDispatcher } from "svelte";
+  import { scale } from "svelte/transition";
+  import { slide } from "svelte/transition";
 
   const dispatch = createEventDispatcher();
-  
+
   let loading = false;
-  let msg = '';
+  let msg = "";
 
   // Variables para la creación del curso
   let title = "";
   let description = "";
   let category = "Secundaria";
-  
+
   // Variables para la lista de estudiantes
   let students: string[] = [];
   let newStudentEmail = "";
@@ -32,7 +32,7 @@
       msg = "Ingresa un correo válido.";
       return;
     }
-    
+
     students = [...students, val];
     newStudentEmail = "";
     msg = "";
@@ -45,34 +45,31 @@
   async function createCourse(e: Event) {
     e.preventDefault();
     loading = true;
-    msg = '';
+    msg = "";
 
     try {
-      const token = document.cookie.split("; ")
-      .find((row) => row.startsWith("session="))
-      ?.split("=")[1];
-      
       const res = await fetch("http://localhost:5000/api/courses", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           title,
           description,
           category,
           accessList: students,
-        })
+        }),
       });
 
-      const data = await res.json(); 
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Error al crear el curso');
+        throw new Error(data.message || "Error al crear el curso");
       }
 
       dispatch("created", data);
       dispatch("close");
-
     } catch (err: any) {
       msg = err.message || "No se pudo crear el curso";
       console.error("Request failed:", err);
@@ -81,20 +78,23 @@
     }
 
     try {
-      const token = document.cookie.split("; ")
-      .find((row) => row.startsWith("session="))
-      ?.split("=")[1];
-      
+      const token = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("session="))
+        ?.split("=")[1];
+
       const res = await fetch("http://localhost:5000/api/enrollments/all", {
         method: "GET",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
-      const data = await res.json(); 
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Error al leer enrollments');
+        throw new Error(data.message || "Error al leer enrollments");
       }
 
       console.log(data);
@@ -105,16 +105,15 @@
   }
 </script>
 
-<div class="modal-backdrop" on:click|self={() => dispatch('close')}>
+<div class="modal-backdrop" on:click|self={() => dispatch("close")}>
   <div class="modal" on:click|stopPropagation in:scale>
     <h3 class="modal-title">Crear Nuevo Curso</h3>
 
     <form class="form" on:submit={createCourse}>
-      
       {#if msg}
         <div class="alert" transition:slide>{msg}</div>
       {/if}
-      
+
       <div class="form-group">
         <label>Nombre del curso</label>
         <input
@@ -132,18 +131,21 @@
           <option value="Preparatoria">Preparatoria</option>
         </select>
       </div>
-      
+
       <div class="form-group">
         <label for="student-input">Estudiantes a inscribir (Email)</label>
         <div class="add-student-row">
-          <input 
-            id="student-input" 
-            type="email" 
-            placeholder="correo@ejemplo.com" 
-            bind:value={newStudentEmail} 
-            on:keydown={(e) => e.key === 'Enter' && (e.preventDefault() || addStudent())}
+          <input
+            id="student-input"
+            type="email"
+            placeholder="correo@ejemplo.com"
+            bind:value={newStudentEmail}
+            on:keydown={(e) =>
+              e.key === "Enter" && (e.preventDefault() || addStudent())}
           />
-          <button type="button" class="add-btn" on:click={addStudent}>Agregar</button>
+          <button type="button" class="add-btn" on:click={addStudent}
+            >Agregar</button
+          >
         </div>
 
         <div class="student-list">
@@ -153,12 +155,19 @@
             {#each students as student, i}
               <div class="student-tag" transition:slide>
                 <span>{student}</span>
-                <button type="button" class="remove-btn" on:click={() => removeStudent(i)} title="Remover">&times;</button>
+                <button
+                  type="button"
+                  class="remove-btn"
+                  on:click={() => removeStudent(i)}
+                  title="Remover">&times;</button
+                >
               </div>
             {/each}
           {/if}
         </div>
-        <small style="color: #718096; font-size: 0.8rem;">* Los usuarios deben estar registrados previamente.</small>
+        <small style="color: #718096; font-size: 0.8rem;"
+          >* Los usuarios deben estar registrados previamente.</small
+        >
       </div>
       <div class="form-group">
         <label>Descripción</label>
@@ -174,13 +183,13 @@
         <button
           type="button"
           class="btn-secondary"
-          on:click={() => dispatch('close')}
+          on:click={() => dispatch("close")}
           disabled={loading}
         >
           Cancelar
         </button>
         <button type="submit" class="btn-primary" disabled={loading}>
-          {loading ? 'Creando...' : 'Crear Curso'}
+          {loading ? "Creando..." : "Crear Curso"}
         </button>
       </div>
     </form>
@@ -218,8 +227,8 @@
     color: #1f2937;
     text-align: center;
   }
-  
-  .alert { 
+
+  .alert {
     background-color: #fff5f5;
     border-left: 4px solid #e53e3e;
     color: #c53030;
@@ -278,7 +287,7 @@
     display: flex;
     gap: 0.5rem;
   }
-  
+
   .add-btn {
     background: #48bb78;
     color: white;
@@ -289,7 +298,9 @@
     font-weight: 600;
     transition: background 0.2s;
   }
-  .add-btn:hover { background: #38a169; }
+  .add-btn:hover {
+    background: #38a169;
+  }
 
   .student-list {
     margin-top: 0.8rem;
@@ -336,7 +347,9 @@
     display: flex;
     align-items: center;
   }
-  .remove-btn:hover { color: #c53030; }
+  .remove-btn:hover {
+    color: #c53030;
+  }
 
   /* Actions */
   .form-actions {

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { fade, fly } from 'svelte/transition';
-  import NavBar from '$lib/components/NavBar.svelte';
-  import CourseCard from '$lib/components/CourseCard.svelte';
-  import CreateCourseModal from '$lib/components/CreateCourseModal.svelte';
-  import LessonsModal from '$lib/components/LessonsModal.svelte';
+  import { onMount } from "svelte";
+  import { fade, fly } from "svelte/transition";
+  import NavBar from "$lib/components/NavBar.svelte";
+  import CourseCard from "$lib/components/CourseCard.svelte";
+  import CreateCourseModal from "$lib/components/CreateCourseModal.svelte";
+  import LessonsModal from "$lib/components/LessonsModal.svelte";
 
   type Course = {
     id: string;
@@ -24,21 +24,12 @@
   let selectedCourse: Course | null = null;
   let isLoading = true; // New loading state
 
-  let username = '';
-  let viewerType = 'student';
+  let username = "";
+  let viewerType = "student";
 
-  const API_BASE = 'http://localhost:5000';
-
-  const token = () =>
-    document.cookie.split('; ').find((row) => row.startsWith('session='))?.split('=')[1];
-
-  const authHeaders = () => ({
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token()}`
-  });
-
+  const API_BASE = "http://localhost:5000";
   const openCreateModal = () => (showCreateModal = true);
-  
+
   const openLessonsModal = (course: Course) => {
     selectedCourse = course;
     showLessonsModal = true;
@@ -51,22 +42,19 @@
   };
 
   async function loadUser() {
-    const t = token();
-    if (!t) {
-      window.location.href = '/login';
-      return;
-    }
-
     try {
-      const res = await fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/api/auth/me`, {
+        credentials: "include",
+      });
       if (res.status === 401) {
-        document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        window.location.href = '/login';
+        document.cookie =
+          "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        window.location.href = "/login";
         return;
       }
       const data = await res.json();
       username = data.name;
-      viewerType = data.role || 'student';
+      viewerType = data.role || "student";
     } catch (error) {
       console.error("Auth error:", error);
     }
@@ -75,7 +63,9 @@
   async function loadCourses() {
     isLoading = true;
     try {
-      const res = await fetch(`${API_BASE}/api/courses`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/api/courses`, {
+        credentials: "include",
+      });
       if (res.ok) {
         const list = await res.json();
         courses = list.map((c: any) => ({
@@ -83,7 +73,7 @@
           title: c.name || c.title,
           description: c.description || "",
           category: c.category,
-          students: new Array(c.studentsCount || 0).fill('student'), 
+          students: new Array(c.studentsCount || 0).fill("student"),
           studentsCount: c.studentsCount || 0,
           lessons: c.lessons || 0,
           image: "📚",
@@ -108,7 +98,7 @@
       studentsCount: (newCourseData.students || []).length,
       lessons: 0,
       image: "📚",
-      color: "#3182ce"
+      color: "#3182ce",
     };
 
     courses = [...courses, newCourse];
@@ -116,12 +106,12 @@
   }
 
   async function deleteCourse(id: string) {
-    if(!confirm("¿Estás seguro de eliminar este curso?")) return;
+    if (!confirm("¿Estás seguro de eliminar este curso?")) return;
 
     try {
       const res = await fetch(`${API_BASE}/api/courses/${id}`, {
-        method: 'DELETE',
-        headers: authHeaders()
+        method: "DELETE",
+        credentials: "include",
       });
       if (res.ok) {
         courses = courses.filter((c) => c.id !== id);
@@ -146,7 +136,7 @@
         <h2>Gestión de Cursos</h2>
         <p>Administra tu catálogo educativo</p>
       </div>
-      
+
       {#if !isLoading}
         <div class="header-stats" in:fade>
           <span class="stat-pill">
@@ -186,7 +176,7 @@
               {course}
               on:openLessons={() => openLessonsModal(course)}
               on:deleteCourse={() => deleteCourse(course.id)}
-              on:refresh={loadCourses} 
+              on:refresh={loadCourses}
             />
           </div>
         {/each}
@@ -196,16 +186,16 @@
 
   {#if showCreateModal}
     <CreateCourseModal
-      on:close={() => showCreateModal = false}
+      on:close={() => (showCreateModal = false)}
       on:created={handleCreated}
     />
   {/if}
 
   {#if showLessonsModal && selectedCourse}
-    <LessonsModal 
-        {selectedCourse}
-        on:close={closeModals}
-        on:lessonsUpdated={loadCourses}
+    <LessonsModal
+      {selectedCourse}
+      on:close={closeModals}
+      on:lessonsUpdated={loadCourses}
     />
   {/if}
 </div>
@@ -219,7 +209,11 @@
     max-width: 1200px;
     margin: 2rem auto;
     padding: 0 1.5rem;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family:
+      "Inter",
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 
   /* --- Header Styling --- */
@@ -233,7 +227,9 @@
     background: white;
     padding: 1.5rem;
     border-radius: 16px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.03);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.02),
+      0 1px 2px rgba(0, 0, 0, 0.03);
     border: 1px solid #edf2f7;
   }
 
@@ -359,7 +355,14 @@
     margin-bottom: 1rem;
   }
 
-  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
 
   /* --- Empty State --- */
   .empty-state {

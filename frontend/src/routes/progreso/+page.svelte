@@ -19,81 +19,91 @@
   let username = "";
   let viewerType = "student";
   let coursesProgress: CourseProgress[] = [];
-  
+
   let currentPendingPage = 1;
   let currentGradesPage = 1;
   const itemsPerPage = 5;
 
-  const token = () =>
-  document.cookie.split('; ').find((row) => row.startsWith('session='))?.split('=')[1];
-
   onMount(async () => {
     try {
-      const t = token();
-      if (!t) {
-        window.location.href = '/login';
-        return;
-      }
-      const headers = { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${t}` 
-      };
-
-      const userRes = await fetch("http://localhost:5000/api/auth/me", { headers });
+      const userRes = await fetch("http://localhost:5000/api/auth/me", {
+        credentials: "include",
+      });
       if (userRes.ok) {
         const userData = await userRes.json();
         username = userData.name;
         viewerType = userData.role;
       }
 
-      const coursesRes = await fetch("http://localhost:5000/api/courses", { headers });
+      const coursesRes = await fetch("http://localhost:5000/api/courses", {
+        credentials: "include",
+      });
       if (!coursesRes.ok) throw new Error("Failed to fetch courses");
-      
+
       const coursesData = await coursesRes.json();
 
-      const detailedCourses = await Promise.all(coursesData.map(async (course: any) => {
-        const lessonsRes = await fetch(`http://localhost:5000/api/courses/${course.id}/lessons`, { headers });
-        const lessonsData = await lessonsRes.json();
+      const detailedCourses = await Promise.all(
+        coursesData.map(async (course: any) => {
+          const lessonsRes = await fetch(
+            `http://localhost:5000/api/courses/${course.id}/lessons`,
+            { credentials: "include" },
+          );
+          const lessonsData = await lessonsRes.json();
 
-        const quizzesRes = await fetch(`http://localhost:5000/api/quizzes?courseId=${course.id}`, { headers });
-        const quizzesData = await quizzesRes.json();
+          const quizzesRes = await fetch(
+            `http://localhost:5000/api/quizzes?courseId=${course.id}`,
+            { credentials: "include" },
+          );
+          const quizzesData = await quizzesRes.json();
 
-        const gradesPromises = quizzesData.map(async (quiz: any) => {
-          const scoreRes = await fetch(`http://localhost:5000/api/quizzes/quiz-score?quizId=${quiz._id}`, { headers });
-          const scoreData = await scoreRes.json();
-          
-          if (scoreData.status === "Completed") {
-            return {
-              quiz: quiz.title,
-              score: scoreData.score,
-              date: new Date().toISOString()
-            };
-          }
-          return null;
-        });
+          const gradesPromises = quizzesData.map(async (quiz: any) => {
+            const scoreRes = await fetch(
+              `http://localhost:5000/api/quizzes/quiz-score?quizId=${quiz._id}`,
+              { credentials: "include" },
+            );
+            const scoreData = await scoreRes.json();
 
-        const recentGrades = (await Promise.all(gradesPromises)).filter(g => g !== null);
-        const averageGrade = recentGrades.length > 0 
-          ? Math.round(recentGrades.reduce((acc, curr) => acc + curr.score, 0) / recentGrades.length) 
-          : 0;
+            if (scoreData.status === "Completed") {
+              return {
+                quiz: quiz.title,
+                score: scoreData.score,
+                date: new Date().toISOString(),
+              };
+            }
+            return null;
+          });
 
-        const pending = lessonsData
-          .filter((l: any) => !l.completed)
-          .map((l: any) => ({ id: l._id, title: l.title }));
+          const recentGrades = (await Promise.all(gradesPromises)).filter(
+            (g) => g !== null,
+          );
+          const averageGrade =
+            recentGrades.length > 0
+              ? Math.round(
+                  recentGrades.reduce((acc, curr) => acc + curr.score, 0) /
+                    recentGrades.length,
+                )
+              : 0;
 
-        const completedCount = lessonsData.filter((l: any) => l.completed).length;
+          const pending = lessonsData
+            .filter((l: any) => !l.completed)
+            .map((l: any) => ({ id: l._id, title: l.title }));
 
-        return {
-          id: course.id,
-          title: course.name,
-          completedLessons: completedCount,
-          totalLessons: lessonsData.length,
-          progress: course.personalProgress,
-          pendingLessons: pending,
-          recentGrades: recentGrades,
-          averageGrade: averageGrade
-        };
-      }));
+          const completedCount = lessonsData.filter(
+            (l: any) => l.completed,
+          ).length;
+
+          return {
+            id: course.id,
+            title: course.name,
+            completedLessons: completedCount,
+            totalLessons: lessonsData.length,
+            progress: course.personalProgress,
+            pendingLessons: pending,
+            recentGrades: recentGrades,
+            averageGrade: averageGrade,
+          };
+        }),
+      );
 
       coursesProgress = detailedCourses;
     } catch (error) {
@@ -101,52 +111,70 @@
     }
   });
 
-  $: overallProgress = coursesProgress.length === 0 
-    ? 0 
-    : Math.round(
-        coursesProgress.reduce((sum, course) => sum + (course.progress || 0), 0) / coursesProgress.length
-      );
+  $: overallProgress =
+    coursesProgress.length === 0
+      ? 0
+      : Math.round(
+          coursesProgress.reduce(
+            (sum, course) => sum + (course.progress || 0),
+            0,
+          ) / coursesProgress.length,
+        );
 
-  $: totalCompleted = coursesProgress.reduce((sum, course) => sum + (course.completedLessons || 0), 0);
+  $: totalCompleted = coursesProgress.reduce(
+    (sum, course) => sum + (course.completedLessons || 0),
+    0,
+  );
 
-  $: totalPending = coursesProgress.reduce((sum, course) => sum + (course.pendingLessons?.length || 0), 0);
+  $: totalPending = coursesProgress.reduce(
+    (sum, course) => sum + (course.pendingLessons?.length || 0),
+    0,
+  );
 
   $: paginatedPendingLessons = (() => {
-    const allLessons = coursesProgress.flatMap(course => 
-      course.pendingLessons.map(lesson => ({
+    const allLessons = coursesProgress.flatMap((course) =>
+      course.pendingLessons.map((lesson) => ({
         ...lesson,
         courseTitle: course.title,
-        courseId: course.id
-      }))
+        courseId: course.id,
+      })),
     );
-    
+
     const startIndex = (currentPendingPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    
+
     return allLessons.slice(startIndex, endIndex);
   })();
 
   $: paginatedRecentGrades = (() => {
-    const allGrades = coursesProgress.flatMap(course => 
-      course.recentGrades.map(grade => ({
+    const allGrades = coursesProgress.flatMap((course) =>
+      course.recentGrades.map((grade) => ({
         ...grade,
         courseTitle: course.title,
-        courseId: course.id
-      }))
+        courseId: course.id,
+      })),
     );
-    
-    allGrades.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
+
+    allGrades.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
     const startIndex = (currentGradesPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    
+
     return allGrades.slice(startIndex, endIndex);
   })();
 
-  $: totalPendingLessons = coursesProgress.reduce((sum, course) => sum + course.pendingLessons.length, 0);
+  $: totalPendingLessons = coursesProgress.reduce(
+    (sum, course) => sum + course.pendingLessons.length,
+    0,
+  );
   $: totalPendingPages = Math.ceil(totalPendingLessons / itemsPerPage);
-  
-  $: totalRecentGrades = coursesProgress.reduce((sum, course) => sum + course.recentGrades.length, 0);
+
+  $: totalRecentGrades = coursesProgress.reduce(
+    (sum, course) => sum + course.recentGrades.length,
+    0,
+  );
   $: totalGradesPages = Math.ceil(totalRecentGrades / itemsPerPage);
 
   function handlePendingPageChange(page: number) {
@@ -180,7 +208,7 @@
         <p>Cursos Inscritos</p>
       </div>
     </div>
-    
+
     <div class="metric-card">
       <div class="metric-icon">✅</div>
       <div class="metric-content">
@@ -188,7 +216,7 @@
         <p>Lecciones Completadas</p>
       </div>
     </div>
-    
+
     <div class="metric-card">
       <div class="metric-icon">⏳</div>
       <div class="metric-content">
@@ -196,7 +224,7 @@
         <p>Lecciones Pendientes</p>
       </div>
     </div>
-    
+
     <div class="metric-card">
       <div class="metric-icon">📈</div>
       <div class="metric-content">
@@ -220,7 +248,7 @@
             <div class="lesson-item">
               <span class="course-badge">{lesson.courseTitle}</span>
               <span class="lesson-title">{lesson.title}</span>
-              <button 
+              <button
                 class="resume-btn"
                 on:click={() => continueLesson(lesson.courseId, lesson.id)}
               >
@@ -235,11 +263,11 @@
             </div>
           {/each}
         </div>
-        
+
         {#if totalPendingPages > 1}
           <div class="pagination-info">
             <span class="pagination-text">
-              Página {currentPendingPage} de {totalPendingPages} 
+              Página {currentPendingPage} de {totalPendingPages}
               ({totalPendingLessons} lecciones en total)
             </span>
             <Pagination
@@ -261,11 +289,19 @@
                 <span class="quiz-name">{grade.quiz}</span>
                 <span class="course-name">{grade.courseTitle}</span>
               </div>
-              <div class="grade-score {grade.score >= 90 ? 'excellent-score' : grade.score >= 80 ? 'high-score' : grade.score >= 70 ? 'medium-score' : 'low-score'}">
+              <div
+                class="grade-score {grade.score >= 90
+                  ? 'excellent-score'
+                  : grade.score >= 80
+                    ? 'high-score'
+                    : grade.score >= 70
+                      ? 'medium-score'
+                      : 'low-score'}"
+              >
                 {grade.score}%
               </div>
               <span class="grade-date">
-                {new Date(grade.date).toLocaleDateString('es-ES')}
+                {new Date(grade.date).toLocaleDateString("es-ES")}
               </span>
             </div>
           {:else}
@@ -276,11 +312,11 @@
             </div>
           {/each}
         </div>
-        
+
         {#if totalGradesPages > 1}
           <div class="pagination-info">
             <span class="pagination-text">
-              Página {currentGradesPage} de {totalGradesPages} 
+              Página {currentGradesPage} de {totalGradesPages}
               ({totalRecentGrades} calificaciones en total)
             </span>
             <Pagination
@@ -388,11 +424,11 @@
       grid-template-columns: 1fr;
       gap: 1.5rem;
     }
-    
+
     .progress-grid {
       grid-template-columns: 1fr;
     }
-    
+
     .metrics-grid {
       grid-template-columns: repeat(2, 1fr);
     }

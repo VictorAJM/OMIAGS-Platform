@@ -26,30 +26,16 @@
   let saveMessage = "";
 
   // Utilidad para obtener token JWT de la cookie "session"
-  function getToken() {
-    return document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("session="))
-      ?.split("=")[1];
-  }
 
   // Cargar usuario y poblar tarjetas
   onMount(async () => {
-    const token = getToken();
-    if (!token) {
-      window.location.href = "/login";
-      return;
-    }
-
     try {
       // Datos mínimos de sesión/rol
       const meRes = await fetch("http://localhost:5000/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (meRes.status === 401) {
-        document.cookie =
-          "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         window.location.href = "/login";
         return;
       }
@@ -61,7 +47,7 @@
       // Perfil detallado (nombre/email, fechas, métricas)
       // Si tu backend expone GET /api/user/profile:
       const profRes = await fetch("http://localhost:5000/api/user/profile", {
-        headers: { Authorization: `Bearer {token}`.replace("{token}", token) },
+        credentials: "include",
       });
 
       // Si no existe la ruta anterior, usa los datos de /auth/me como fallback
@@ -112,16 +98,13 @@
 
   // Guardar nombre/email
   async function saveProfile() {
-    const token = getToken();
-    if (!token) return;
-
     try {
       const res = await fetch("http://localhost:5000/api/user/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({ name: profile.name, email: profile.email }),
       });
 
@@ -137,9 +120,6 @@
   }
 
   async function changePassword() {
-    const token = getToken();
-    if (!token) return;
-
     if (
       !profile.currentPassword ||
       !profile.newPassword ||
@@ -153,7 +133,7 @@
     try {
       // Obtener ID del usuario usando /api/auth/me
       const me = await fetch("http://localhost:5000/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (!me.ok) throw new Error("No se pudo validar token");
@@ -166,8 +146,8 @@
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: "include",
           body: JSON.stringify({
             oldPassword: profile.currentPassword,
             newPassword: profile.newPassword,

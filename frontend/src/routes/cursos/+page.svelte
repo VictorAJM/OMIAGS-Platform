@@ -2,7 +2,7 @@
   import NavBar from "$lib/components/NavBar.svelte";
   import CourseCardStudent from "../CourseCardStudent.svelte";
   import { onMount } from "svelte";
-  import { fade, fly } from 'svelte/transition';
+  import { fade, fly } from "svelte/transition";
 
   interface Course {
     id: string;
@@ -23,53 +23,45 @@
   };
 
   let courses: Course[] = [];
-  let username = '';
-  let viewerType = 'student';
+  let username = "";
+  let viewerType = "student";
   let loading = true;
 
-  const API_BASE = 'http://localhost:5000';
-
-  const token = () =>
-    document.cookie.split('; ').find((row) => row.startsWith('session='))?.split('=')[1];
-
-  const authHeaders = () => ({
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token()}`
-  });
+  const API_BASE = "http://localhost:5000";
 
   async function loadUser() {
-    const t = token();
-    if (!t) {
-      window.location.href = '/login';
-      return;
-    }
-
     try {
-        const res = await fetch(`${API_BASE}/api/auth/me`, { headers: authHeaders() });
-        if (res.status === 401) {
-          document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-          window.location.href = '/login';
-          return;
-        }
-        const data = await res.json();
-        username = data.name;
-        viewerType = data.role || 'student';
+      const res = await fetch(`${API_BASE}/api/auth/me`, {
+        credentials: "include",
+      });
+      if (res.status === 401) {
+        document.cookie =
+          "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        window.location.href = "/login";
+        return;
+      }
+      const data = await res.json();
+      username = data.name;
+      viewerType = data.role || "student";
     } catch (e) {
-        console.error("Auth error", e);
+      console.error("Auth error", e);
     }
   }
 
   async function fetchCourseProgress(courseId: string): Promise<ProgressData> {
     try {
-      const res = await fetch(`${API_BASE}/api/enrollments/status/${courseId}`, { 
-        headers: authHeaders() 
-      });
-      
+      const res = await fetch(
+        `${API_BASE}/api/enrollments/status/${courseId}`,
+        {
+          credentials: "include",
+        },
+      );
+
       if (res.ok) {
         const data = await res.json();
         return {
-            personalProgress: data.studentProgress || 0,
-            completedLessons: data.completedLessons || []
+          personalProgress: data.studentProgress || 0,
+          completedLessons: data.completedLessons || [],
         };
       }
       return { personalProgress: 0, completedLessons: [] };
@@ -81,7 +73,9 @@
 
   async function loadCourses() {
     try {
-      const res = await fetch(`${API_BASE}/api/courses`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/api/courses`, {
+        credentials: "include",
+      });
       if (res.ok) {
         const list = await res.json();
         const coursesPromises = list.map(async (c: any) => {
@@ -102,9 +96,9 @@
         courses = await Promise.all(coursesPromises);
       }
     } catch (error) {
-        console.error("Error cargando cursos:", error);
+      console.error("Error cargando cursos:", error);
     } finally {
-        loading = false;
+      loading = false;
     }
   }
 
@@ -120,10 +114,10 @@
   <div class="dashboard-container">
     <header class="dashboard-header">
       <div class="header-text">
-        <h1>Hola, {username || 'Estudiante'} 👋</h1>
+        <h1>Hola, {username || "Estudiante"} 👋</h1>
         <p class="subtitle">Bienvenido a tu panel de aprendizaje</p>
       </div>
-      
+
       {#if !loading && courses.length > 0}
         <div class="header-stats" in:fade>
           <span class="stat-pill">
@@ -132,7 +126,7 @@
         </div>
       {/if}
     </header>
-    
+
     {#if loading}
       <div class="loading-container" in:fade>
         <div class="spinner"></div>
@@ -147,8 +141,8 @@
     {:else}
       <div class="courses-grid">
         {#each courses as course (course.id)}
-          <div class="grid-item" in:fly={{ y: 20, duration: 400 }}> 
-             <CourseCardStudent {course} />
+          <div class="grid-item" in:fly={{ y: 20, duration: 400 }}>
+            <CourseCardStudent {course} />
           </div>
         {/each}
       </div>
@@ -200,7 +194,7 @@
     border-radius: 20px;
     font-size: 0.9rem;
     color: #334155;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     border: 1px solid #e2e8f0;
   }
 
@@ -265,8 +259,12 @@
   }
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   @media (max-width: 768px) {
@@ -275,7 +273,7 @@
       align-items: flex-start;
       gap: 1rem;
     }
-    
+
     .courses-grid {
       grid-template-columns: 1fr;
     }

@@ -7,7 +7,9 @@
 
   onMount(async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/quizzes/list`);
+      const res = await fetch(`http://localhost:5000/api/quizzes/list`, {
+        credentials: "include",
+      });
       if (!res.ok) {
         throw new Error("Failed to load quizzes.");
       }
@@ -18,7 +20,6 @@
       loading = false;
     }
   });
-
 </script>
 
 <NavBar />
@@ -53,7 +54,7 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
-    font-family: 'Inter', sans-serif;
+    font-family: "Inter", sans-serif;
   }
 
   .header {
@@ -88,7 +89,9 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
     border: 1px solid #e5e7eb;
   }
 
