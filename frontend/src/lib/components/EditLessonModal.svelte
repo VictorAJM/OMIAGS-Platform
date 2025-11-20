@@ -6,7 +6,6 @@
   import CreateQuizModal from "./CreateQuizModal.svelte";
 
   export let lesson: any;
-  export let courseId: string;
 
   const dispatch = createEventDispatcher();
 
@@ -23,6 +22,7 @@
   let description = lesson.description || "";
   let loading = false;
   let error = "";
+  let lessonId = lesson._id;
 
   let showCreateQuizModal = false;
   let activeContentIndex: number | null = null;
@@ -336,7 +336,7 @@
 
 {#if showCreateQuizModal}
   <CreateQuizModal
-    {courseId}
+    {lessonId}
     on:close={() => (showCreateQuizModal = false)}
     on:created={handleQuizCreated}
   />

@@ -26,12 +26,19 @@ const questionSchema = new mongoose.Schema({
   },
   options: {
     type: [String],
+    // Will not be present unless it's a multiple-choice/answer question
     default: undefined,
   },
   code: {
     type: String,
+    // Will not be present unless it's a complete-the-code question
     default: undefined,
   },
+  // The correct answer. The data type depends on the question `type`.
+  // - 'multiple-choice': String (the correct option text)
+  // - 'true-false': Boolean
+  // - 'fill-in-the-blank': String
+  // - 'multiple-answer': [String] (array of correct option texts)
   correctAnswer: {
     type: mongoose.Schema.Types.Mixed,
     required: [true, "The correct answer is required."],
@@ -52,12 +59,12 @@ const quizSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    // CHANGED: Associates the quiz with a specific LESSON instead of a Course.
     lessonId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Lesson",
       required: true,
     },
+    // Maximum score for the quiz.
     maxScore: {
       type: Number,
       default: 0,

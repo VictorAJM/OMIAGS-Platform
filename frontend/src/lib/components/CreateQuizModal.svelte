@@ -2,7 +2,7 @@
     import { createEventDispatcher } from "svelte";
     import { scale, fade } from "svelte/transition";
 
-    export let courseId: string;
+    export let lessonId: string;
 
     const dispatch = createEventDispatcher();
 
@@ -27,7 +27,7 @@
                 body: JSON.stringify({
                     title,
                     description,
-                    courseId,
+                    lessonId,
                     questions: [],
                 }),
             });

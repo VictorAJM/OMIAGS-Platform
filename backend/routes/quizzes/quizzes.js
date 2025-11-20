@@ -10,7 +10,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const { lessonId } = req.query;
-    
+
     if (!lessonId) {
       return res
         .status(400)
@@ -29,6 +29,7 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/quizzes/list
+// Get a list of all quizzes
 router.get("/list", async (req, res) => {
   try {
     const quizzes = await Quiz.find().select("_id title description");
@@ -41,7 +42,8 @@ router.get("/list", async (req, res) => {
   }
 });
 
-// GET /api/quizzes/quiz-score
+// GET /api/quizzes/get-score
+// Get the score of a given user on a given quiz
 router.get("/quiz-score", requireAuth, async (req, res) => {
   let { quizId, userId } = req.query;
 
@@ -83,7 +85,8 @@ router.get("/quiz-score", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/quizzes/attempts
+// GET /api/quizzes/attemts
+// Returns the number of users that have attempted the given quiz
 router.get("/attempts", requireAuth, async (req, res) => {
   const { quizId } = req.query;
 
@@ -230,7 +233,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
         quizAttempt = new QuizAttempt({
           userId: req.user._id,
           quizId: quizId,
-          lessonId: quiz.lessonId, 
+          lessonId: quiz.lessonId,
           completed: false,
           questionsAnswered: 0,
           currentScore: 0,
@@ -289,6 +292,8 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
   }
 });
 
+// TODO: REMOVE ON PROD
+// This is only for bulk attempt creation
 router.post("/no-auth-submit-answer", async (req, res) => {
   try {
     const { quizId, userId, questionIndex, answer } = req.body;
@@ -312,7 +317,7 @@ router.post("/no-auth-submit-answer", async (req, res) => {
         quizAttempt = new QuizAttempt({
           userId: userId,
           quizId: quizId,
-          lessonId: quiz.lessonId, 
+          lessonId: quiz.lessonId,
           completed: false,
           questionsAnswered: 0,
           currentScore: 0,

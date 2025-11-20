@@ -33,9 +33,9 @@ const quizAttemptSchema = new mongoose.Schema({
   },
 
   // ID del curso al que pertenece el quiz
-  courseId: {
+  lessonId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Course",
+    ref: "Lesson",
     required: true,
   },
 
