@@ -158,7 +158,7 @@
   }
 
   function continueLesson(courseId: string, lessonId: string) {
-    window.location.href = `/courses/${courseId}/lessons/${lessonId}`;
+    window.location.href = `/cursos/${courseId}`;
   }
 </script>
 
