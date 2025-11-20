@@ -125,7 +125,7 @@ router.put("/change-password", requireAuth, async (req, res) => {
     }
 
     const user_id = req.user._id;
-    console.log(user_id)
+    console.log(user_id);
     const user = await User.findById(user_id);
     const ok = await user.validatePassword(oldPassword);
 
@@ -134,11 +134,10 @@ router.put("/change-password", requireAuth, async (req, res) => {
     }
 
     if (newPassword.length < 8) {
-      return res
-        .status(400)
-        .json({ error: "La contraseña nueva debe tener al menos 8 caracteres" });
+      return res.status(400).json({
+        error: "La contraseña nueva debe tener al menos 8 caracteres",
+      });
     }
-
 
     user.password = newPassword;
     user.save();
