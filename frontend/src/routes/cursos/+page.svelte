@@ -1,9 +1,9 @@
 <script lang="ts">
   import NavBar from "$lib/components/NavBar.svelte";
-  import CourseCardStudent from "../CourseCardStudent.svelte"; // Asegúrate de la ruta correcta
+  import CourseCardStudent from "../CourseCardStudent.svelte";
   import { onMount } from "svelte";
+  import { fade, fly } from 'svelte/transition';
 
-  // Interfaz actualizada
   interface Course {
     id: string;
     name: string;
@@ -67,13 +67,11 @@
       
       if (res.ok) {
         const data = await res.json();
-        // Devolvemos ambos datos de la API
         return {
             personalProgress: data.studentProgress || 0,
             completedLessons: data.completedLessons || []
         };
       }
-      // Retorno por defecto si la respuesta no es OK
       return { personalProgress: 0, completedLessons: [] };
     } catch (error) {
       console.error(`Error cargando progreso para curso ${courseId}`, error);
@@ -118,64 +116,168 @@
 
 <NavBar {viewerType} {username} />
 
-<div class="dashboard-container">
-  <header class="dashboard-header">
-    <h1>Mis Cursos</h1>
-    {#if viewerType === 'student'}
-        <p class="subtitle">Continúa donde lo dejaste</p>
-    {/if}
-  </header>
-  
-  {#if loading}
-    <div class="loading">Cargando tus cursos...</div>
-  {:else if courses.length === 0}
-    <div class="empty-state">
-        <p>Aún no estás inscrito en ningún curso.</p>
-    </div>
-  {:else}
-    <div class="courses-grid">
-      {#each courses as course}
-        <div class="grid-item"> 
-             <CourseCardStudent {course} />
+<main class="main-content">
+  <div class="dashboard-container">
+    <header class="dashboard-header">
+      <div class="header-text">
+        <h1>Hola, {username || 'Estudiante'} 👋</h1>
+        <p class="subtitle">Bienvenido a tu panel de aprendizaje</p>
+      </div>
+      
+      {#if !loading && courses.length > 0}
+        <div class="header-stats" in:fade>
+          <span class="stat-pill">
+            <strong>{courses.length}</strong> Cursos en curso
+          </span>
         </div>
-      {/each}
-    </div>
-  {/if}
-</div>
+      {/if}
+    </header>
+    
+    {#if loading}
+      <div class="loading-container" in:fade>
+        <div class="spinner"></div>
+        <p>Sincronizando tus cursos...</p>
+      </div>
+    {:else if courses.length === 0}
+      <div class="empty-state" in:fade>
+        <div class="empty-icon">🎓</div>
+        <h3>Aún no tienes cursos</h3>
+        <p>Parece que no estás inscrito en ninguna clase todavía.</p>
+      </div>
+    {:else}
+      <div class="courses-grid">
+        {#each courses as course (course.id)}
+          <div class="grid-item" in:fly={{ y: 20, duration: 400 }}> 
+             <CourseCardStudent {course} />
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
+</main>
 
 <style>
+  :global(body) {
+    background-color: #f8fafc;
+  }
+
+  .main-content {
+    min-height: calc(100vh - 64px);
+    padding: 2rem 1rem;
+  }
+
   .dashboard-container {
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
-    font-family: 'Inter', sans-serif;
   }
 
+  /* Header */
   .dashboard-header {
-      margin-bottom: 2rem;
-      text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
   }
 
-  h1 { color: #2d3748; margin-bottom: 0.5rem; }
-  .subtitle { color: #718096; }
-
-  .loading, .empty-state {
-      text-align: center;
-      padding: 3rem;
-      color: #718096;
-      font-size: 1.1rem;
+  .header-text h1 {
+    color: #1e293b;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+    font-weight: 700;
   }
 
+  .subtitle {
+    color: #64748b;
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .stat-pill {
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: #334155;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+  }
+
+  /* Grid */
   .courses-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: 2rem;
-    justify-items: center;
   }
 
   .grid-item {
-    width: 100%;
+    height: 100%;
+  }
+
+  /* Loading */
+  .loading-container {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
+    padding: 4rem 0;
+    color: #64748b;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e2e8f0;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px dashed #cbd5e1;
+    max-width: 500px;
+    margin: 2rem auto;
+  }
+
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.8;
+  }
+
+  .empty-state h3 {
+    color: #334155;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+  }
+
+  .empty-state p {
+    color: #94a3b8;
+    margin: 0;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .courses-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
