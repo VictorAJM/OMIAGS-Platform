@@ -10,29 +10,33 @@ const router = express.Router();
 router.get("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const userRole = req.user.role; 
+    const userRole = req.user.role;
 
     let courses = [];
 
-    if (userRole === 'student') {
-      const enrollments = await Enrollment.find({ student: userId }).populate('course');
+    if (userRole === "student") {
+      const enrollments = await Enrollment.find({ student: userId }).populate(
+        "course",
+      );
 
-      courses = enrollments.map(e => {
-        if(!e.course) return null;
-        return {
-          ...e.course.toObject(),
-          personalProgress: e.studentProgress
-        };
-      }).filter(c => c !== null);
+      courses = enrollments
+        .map((e) => {
+          if (!e.course) return null;
+          return {
+            ...e.course.toObject(),
+            personalProgress: e.studentProgress,
+          };
+        })
+        .filter((c) => c !== null);
     } else {
       courses = await Course.find({ owner: userId });
     }
 
-    const courseIds = courses.map(c => c._id);
+    const courseIds = courses.map((c) => c._id);
 
     const lessonsByCourse = await Lesson.aggregate([
       { $match: { courseId: { $in: courseIds } } },
-      { $group: { _id: "$courseId", count: { $sum: 1 } } }
+      { $group: { _id: "$courseId", count: { $sum: 1 } } },
     ]);
 
     const lessonCountMap = {};
@@ -42,7 +46,7 @@ router.get("/", requireAuth, async (req, res) => {
 
     const enrollmentsByCourse = await Enrollment.aggregate([
       { $match: { course: { $in: courseIds } } },
-      { $group: { _id: "$course", count: { $sum: 1 } } }
+      { $group: { _id: "$course", count: { $sum: 1 } } },
     ]);
 
     const studentCountMap = {};
@@ -56,12 +60,11 @@ router.get("/", requireAuth, async (req, res) => {
       description: c.description,
       category: c.category,
       lessons: lessonCountMap[c._id.toString()] || 0,
-      studentsCount: studentCountMap[c._id.toString()] || 0, 
-      personalProgress: c.personalProgress || 0
+      studentsCount: studentCountMap[c._id.toString()] || 0,
+      personalProgress: c.personalProgress || 0,
     }));
 
     res.json(formatted);
-
   } catch (err) {
     console.error("Error getting courses:", err);
     res.status(500).json({ error: err.message });
@@ -73,12 +76,18 @@ router.get("/:courseId", requireAuth, async (req, res) => {
     const userId = req.user._id.toString();
     const { courseId } = req.params;
 
-    const course = await Course.findById(courseId).populate('owner', 'name email');
+    const course = await Course.findById(courseId).populate(
+      "owner",
+      "name email",
+    );
     if (!course) return res.status(404).json({ message: "Course not found" });
 
     const isOwner = course.owner._id.toString() === userId;
-    
-    const enrollment = await Enrollment.findOne({ course: courseId, student: userId });
+
+    const enrollment = await Enrollment.findOne({
+      course: courseId,
+      student: userId,
+    });
     const isStudent = !!enrollment;
 
     if (!isOwner && !isStudent) {
@@ -87,8 +96,11 @@ router.get("/:courseId", requireAuth, async (req, res) => {
 
     let studentEmails = [];
     if (isOwner) {
-      const enrollments = await Enrollment.find({ course: courseId }).populate('student', 'email');
-      studentEmails = enrollments.map(e => e.student.email);
+      const enrollments = await Enrollment.find({ course: courseId }).populate(
+        "student",
+        "email",
+      );
+      studentEmails = enrollments.map((e) => e.student.email);
     }
 
     res.json({
@@ -97,7 +109,7 @@ router.get("/:courseId", requireAuth, async (req, res) => {
       description: course.description,
       progress: isStudent ? enrollment.studentProgress : course.progress,
       category: course.category,
-      students: studentEmails
+      students: studentEmails,
     });
   } catch (err) {
     console.error(err);
@@ -114,20 +126,25 @@ router.get("/:courseId/lessons", requireAuth, async (req, res) => {
     if (!course) return res.status(404).json({ message: "Course not found" });
 
     const isOwner = course.owner.toString() === userId;
-    const enrollment = await Enrollment.findOne({ course: courseId, student: userId });
+    const enrollment = await Enrollment.findOne({
+      course: courseId,
+      student: userId,
+    });
 
     if (!isOwner && !enrollment) {
       return res.status(403).json({ message: "Access denied" });
     }
 
     const lessons = await Lesson.find({ courseId }).sort({ createdAt: 1 });
-    const completedIds = enrollment ? enrollment.completedLessons.map(id => id.toString()) : [];
-    
+    const completedIds = enrollment
+      ? enrollment.completedLessons.map((id) => id.toString())
+      : [];
+
     const formatted = lessons.map((l) => ({
       _id: l._id,
       title: l.title,
       description: l.description,
-      completed: completedIds.includes(l._id.toString()), 
+      completed: completedIds.includes(l._id.toString()),
       contents: l.contents,
     }));
 
@@ -141,7 +158,7 @@ router.get("/:courseId/lessons", requireAuth, async (req, res) => {
 router.post("/", requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const { title, description, accessList, category } = req.body; 
+    const { title, description, accessList, category } = req.body;
     const newCourse = new Course({
       title,
       description,
@@ -153,19 +170,19 @@ router.post("/", requireAuth, async (req, res) => {
 
     let enrolledEmails = [];
     if (accessList && Array.isArray(accessList) && accessList.length > 0) {
-        const foundUsers = await User.find({ email: { $in: accessList } });
-        
-        const enrollmentsToCreate = foundUsers.map(u => ({
-            student: u._id,
-            course: newCourse._id,
-            completedLessons: [],
-            studentProgress: 0
-        }));
+      const foundUsers = await User.find({ email: { $in: accessList } });
 
-        if (enrollmentsToCreate.length > 0) {
-            await Enrollment.insertMany(enrollmentsToCreate);
-            enrolledEmails = foundUsers.map(u => u.email);
-        }
+      const enrollmentsToCreate = foundUsers.map((u) => ({
+        student: u._id,
+        course: newCourse._id,
+        completedLessons: [],
+        studentProgress: 0,
+      }));
+
+      if (enrollmentsToCreate.length > 0) {
+        await Enrollment.insertMany(enrollmentsToCreate);
+        enrolledEmails = foundUsers.map((u) => u.email);
+      }
     }
 
     res.status(201).json({
@@ -174,7 +191,7 @@ router.post("/", requireAuth, async (req, res) => {
       description: newCourse.description,
       category: newCourse.category,
       owner: newCourse.owner,
-      students: enrolledEmails
+      students: enrolledEmails,
     });
   } catch (err) {
     console.error(err);
@@ -194,42 +211,47 @@ router.put("/:id", requireAuth, async (req, res) => {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    if(title) course.title = title;
-    if(description) course.description = description;
-    if(category) course.category = category;
+    if (title) course.title = title;
+    if (description) course.description = description;
+    if (category) course.category = category;
     await course.save();
 
     if (students && Array.isArray(students)) {
       const targetUsers = await User.find({ email: { $in: students } });
-      const targetUserIds = targetUsers.map(u => u._id.toString());
-      
-      const currentEnrollments = await Enrollment.find({ course: course._id });
-      const currentStudentIds = currentEnrollments.map(e => e.student.toString());
+      const targetUserIds = targetUsers.map((u) => u._id.toString());
 
-      const toEnrollIds = targetUserIds.filter(id => !currentStudentIds.includes(id));
-      
+      const currentEnrollments = await Enrollment.find({ course: course._id });
+      const currentStudentIds = currentEnrollments.map((e) =>
+        e.student.toString(),
+      );
+
+      const toEnrollIds = targetUserIds.filter(
+        (id) => !currentStudentIds.includes(id),
+      );
+
       if (toEnrollIds.length > 0) {
-          const newEnrollments = toEnrollIds.map(sid => ({
-              student: sid,
-              course: course._id,
-              completedLessons: [],
-              studentProgress: 0
-          }));
-          await Enrollment.insertMany(newEnrollments);
+        const newEnrollments = toEnrollIds.map((sid) => ({
+          student: sid,
+          course: course._id,
+          completedLessons: [],
+          studentProgress: 0,
+        }));
+        await Enrollment.insertMany(newEnrollments);
       }
     }
 
-    const updatedEnrollments = await Enrollment.find({ course: course._id }).populate('student', 'email');
-    const updatedEmails = updatedEnrollments.map(e => e.student.email);
+    const updatedEnrollments = await Enrollment.find({
+      course: course._id,
+    }).populate("student", "email");
+    const updatedEmails = updatedEnrollments.map((e) => e.student.email);
 
     res.json({
       id: course._id,
       title: course.title,
       description: course.description,
       category: course.category,
-      students: updatedEmails
+      students: updatedEmails,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });
