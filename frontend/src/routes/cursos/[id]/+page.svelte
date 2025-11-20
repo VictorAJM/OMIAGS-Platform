@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation'; 
   import NavBar from "$lib/components/NavBar.svelte"; 
   import CourseDetails from "$lib/components/CourseDetails.svelte";
+  import { slide } from 'svelte/transition'; 
 
   let course = null;
   let lessons = [];
@@ -49,15 +50,26 @@
     viewerType = data.role || 'student';
   }
 
+  function openContent(content) {
+    // Si es texto corto, quizás quieras mostrarlo ahí mismo, pero 
+    // para consistencia mandamos todo a la nueva página.
+    if (content.type === 'quiz') {
+       goto(`/quiz/${content.quizId}`); // O a /content/${content._id} si quieres manejar el quiz en el viewer
+    } else {
+       // Redirige al nuevo componente creado en el paso 2
+       goto(`/content/${content._id}`);
+    }
+  }
+
   onMount(async () => {
-    await loadUser(); // Aseguramos cargar usuario primero
+    await loadUser();
 
     try {
-      const courseRes = await fetch(`http://localhost:5000/api/courses/${courseId}`, { method: 'GET', headers: authHeaders() });
+      const courseRes = await fetch(`${API_BASE}/api/courses/${courseId}`, { method: 'GET', headers: authHeaders() });
       if (!courseRes.ok) throw new Error("Error al cargar el curso");
       course = await courseRes.json();
 
-      const lessonRes = await fetch(`http://localhost:5000/api/lessons/${courseId}/lessons`, { headers: authHeaders() }); // Agregué headers aquí también por seguridad
+      const lessonRes = await fetch(`${API_BASE}/api/lessons/${courseId}/lessons`, { headers: authHeaders() });
       if (!lessonRes.ok) throw new Error("Error al cargar lecciones");
       lessons = await lessonRes.json();
 
@@ -72,11 +84,13 @@
     expandedLesson = expandedLesson === lessonId ? null : lessonId;
   }
 
-  function openContent(contentId) {
-    goto(`/content/${contentId}`);
+  // Para Quizzes o navegación externa
+  function navigateToContent(contentId, type) {
+    if(type === 'quiz') {
+        goto(`/quiz/${contentId}`); // Ajusta la ruta según tu app
+    }
   }
-  
-  // Función para volver
+
   function goBack() {
     goto('/cursos');
   }
@@ -90,9 +104,9 @@
     );
 
     try {
-      const res = await fetch(`http://localhost:5000/api/lessons/${lesson._id}/completed`, {
+      const res = await fetch(`${API_BASE}/api/lessons/${lesson._id}/completed`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", ...authHeaders() }, // Importante: headers con auth
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ completed: newStatus })
       });
 
@@ -104,6 +118,17 @@
       );
       alert("No se pudo guardar el progreso.");
     }
+  }
+
+  // Helper para transformar URL de Youtube en URL de Embed
+  function getYouTubeEmbedUrl(url) {
+    if (!url) return null;
+    // RegEx para capturar el ID de youtube (funciona con youtu.be, v=, embed, etc)
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11)
+      ? `https://www.youtube.com/embed/${match[2]}`
+      : null;
   }
 </script>
 
@@ -172,21 +197,44 @@
 
             {#if expandedLesson === lesson._id}
               <div class="lesson-body" transition:slide|local={{ duration: 200 }}>
+                
                 {#if lesson.contents && lesson.contents.length > 0}
-                  <ul class="contents-list">
+                  <div class="contents-list">
                     {#each lesson.contents as content}
-                      <li class="content-item" on:click={() => openContent(content._id)}>
-                        <span class="icon-type {content.type}">
-                          {content.type === 'video' ? '🎥' : content.type === 'quiz' ? '📝' : '📄'}
-                        </span>
-                        <span class="content-title">{content.title}</span>
-                        <span class="arrow">→</span>
-                      </li>
+                      
+                      <button class="content-card" on:click={() => openContent(content)}>
+                        
+                        <div class="card-icon {content.type}">
+                          {#if content.type === 'video'}
+                            🎥
+                          {:else if content.type === 'pdf'}
+                            📄
+                          {:else if content.type === 'quiz'}
+                            📝
+                          {:else}
+                            📖
+                          {/if}
+                        </div>
+
+                        <div class="card-info">
+                          <span class="type-label">
+                            {content.type === 'video' ? 'Video' : content.type === 'pdf' ? 'Documento PDF' : content.type === 'quiz' ? 'Quiz' : 'Lectura'}
+                          </span>
+                          <h4>{content.title}</h4>
+                        </div>
+
+                        <div class="card-action">
+                          →
+                        </div>
+
+                      </button>
+
                     {/each}
-                  </ul>
+                  </div>
                 {:else}
                   <p class="no-content">Esta lección aún no tiene contenido.</p>
                 {/if}
+
               </div>
             {/if}
           </div>
@@ -196,74 +244,36 @@
   {/if}
 </div>
 
-<script context="module">
-    import { slide } from 'svelte/transition';
-</script>
-
 <style>
   .course-page { max-width: 800px; margin: 2rem auto; padding: 0 1rem; font-family: 'Inter', sans-serif; }
   
-  /* ESTILOS DEL BOTÓN VOLVER */
   .back-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #64748b;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-    padding: 0;
-    font-size: 0.95rem;
-    transition: color 0.2s, transform 0.2s;
+    background: none; border: none; cursor: pointer; color: #64748b; font-weight: 600;
+    display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0;
+    font-size: 0.95rem; transition: color 0.2s, transform 0.2s;
   }
+  .back-btn:hover { color: #1e293b; transform: translateX(-3px); }
 
-  .back-btn:hover {
-    color: #1e293b;
-    transform: translateX(-3px); /* Efecto visual de movimiento a la izquierda */
-  }
-
-  /* Estados de carga y error */
+  /* Estados generales */
   .loading-state, .error-state, .empty-state { text-align: center; padding: 3rem; color: #666; }
   .error-state { color: #e53e3e; }
   
-  /* Lista de lecciones */
+  /* Estructura de lecciones */
   .lessons-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; }
 
   .lesson-card {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    overflow: hidden;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;
+    transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
-  
   .lesson-card:hover { border-color: #cbd5e0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
   .lesson-card.is-completed { background-color: #f8fff9; border-color: #c6f6d5; }
 
-  /* Header de la lección */
-  .lesson-header {
-    display: flex;
-    align-items: center;
-    padding: 1.25rem;
-    cursor: pointer;
-    gap: 1rem;
-  }
+  /* Header */
+  .lesson-header { display: flex; align-items: center; padding: 1.25rem; cursor: pointer; gap: 1rem; }
 
   .lesson-number {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: #edf2f7;
-    color: #4a5568;
-    border-radius: 50%;
-    font-weight: bold;
-    font-size: 0.9rem;
-    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+    background: #edf2f7; color: #4a5568; border-radius: 50%; font-weight: bold; font-size: 0.9rem; flex-shrink: 0;
   }
   .is-completed .lesson-number { background: #48bb78; color: white; }
 
@@ -273,7 +283,7 @@
 
   .lesson-actions { display: flex; align-items: center; gap: 1rem; }
 
-  /* Checkbox personalizado */
+  /* Checkbox */
   .checkbox-container { position: relative; display: inline-block; width: 24px; height: 24px; cursor: pointer; }
   .checkbox-container input { opacity: 0; width: 0; height: 0; }
   .checkmark {
@@ -283,30 +293,90 @@
   .checkbox-container:hover input ~ .checkmark { border-color: #a0aec0; }
   .checkbox-container input:checked ~ .checkmark { background-color: #48bb78; border-color: #48bb78; }
   .checkmark:after {
-    content: ""; position: absolute; display: none;
-    left: 8px; top: 4px; width: 5px; height: 10px;
-    border: solid white; border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+    content: ""; position: absolute; display: none; left: 8px; top: 4px; width: 5px; height: 10px;
+    border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg);
   }
   .checkbox-container input:checked ~ .checkmark:after { display: block; }
 
   .expand-btn { background: none; border: none; font-size: 1.5rem; color: #a0aec0; cursor: pointer; width: 24px; display:flex; justify-content:center;}
 
-  /* Contenido Interior */
-  .lesson-body { border-top: 1px solid #edf2f7; background: #fcfcfc; }
-  
-  .contents-list { list-style: none; margin: 0; padding: 0; }
-  
-  .content-item {
-    padding: 1rem 1.25rem 1rem 3.5rem;
-    display: flex; align-items: center; gap: 0.75rem;
-    cursor: pointer; border-bottom: 1px solid #edf2f7; transition: background 0.1s;
-  }
-  .content-item:last-child { border-bottom: none; }
-  .content-item:hover { background: #f0f4f8; }
+  /* --- ESTILOS DEL CONTENIDO INTERIOR --- */
+  .lesson-body { border-top: 1px solid #edf2f7; background: #fcfcfc; padding: 1.5rem; }
+  .contents-container { display: flex; flex-direction: column; gap: 2rem; }
+  .no-content { text-align: center; color: #a0aec0; font-style: italic; }
 
-  .icon-type { font-size: 1.1rem; width: 24px; text-align: center;}
-  .content-title { flex-grow: 1; font-size: 0.95rem; color: #4a5568; }
-  .arrow { color: #cbd5e0; font-weight: bold; }
-  .no-content { padding: 1.5rem; text-align: center; color: #a0aec0; font-style: italic; font-size: 0.9rem;}
+  .content-block { display: flex; flex-direction: column; gap: 0.8rem; }
+  
+  .content-title { 
+    font-size: 1rem; font-weight: 600; color: #4a5568; margin: 0; display: flex; align-items: center; gap: 0.5rem;
+    border-bottom: 1px solid #eee; padding-bottom: 0.5rem;
+  }
+  .content-title .icon { font-size: 1.1rem; }
+
+  /* Video Responsive (16:9) */
+  .video-responsive {
+    position: relative; width: 100%; padding-bottom: 56.25%; /* 16:9 Ratio */
+    background: #000; border-radius: 8px; overflow: hidden;
+  }
+  .video-responsive iframe {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  }
+  .content-alert { padding: 1rem; background: #fff5f5; color: #c53030; border-radius: 6px; font-size: 0.9rem; }
+
+  /* Texto */
+  .text-content {
+    font-size: 1rem; line-height: 1.7; color: #2d3748; background: white;
+    padding: 1rem; border-radius: 8px; border: 1px solid #edf2f7;
+    white-space: pre-wrap; /* Para respetar saltos de línea si es texto plano */
+  }
+
+  /* Cards para PDF y Quiz */
+  .resource-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem; border-radius: 8px; text-decoration: none; border: 1px solid #e2e8f0;
+    background: white; transition: all 0.2s; cursor: pointer; width: 100%; text-align: left;
+  }
+  .resource-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+  
+  .resource-card.pdf { border-left: 4px solid #e53e3e; }
+  .resource-card.quiz { border-left: 4px solid #805ad5; }
+
+  .resource-info { display: flex; flex-direction: column; font-size: 0.95rem; color: #2d3748; overflow: hidden; }
+  .resource-info span { font-size: 0.8rem; color: #718096; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+  .arrow { color: #cbd5e0; font-weight: bold; font-size: 1.2rem; }
+.contents-list { display: flex; flex-direction: column; gap: 0.8rem; padding: 1rem; }
+
+  .content-card {
+    display: flex; align-items: center; gap: 1rem;
+    width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 1rem; text-align: left; cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+
+  .content-card:hover {
+    border-color: #3b82f6;
+    transform: translateX(4px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  }
+
+  /* Iconos con fondo de color */
+  .card-icon {
+    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; font-size: 1.2rem; flex-shrink: 0;
+  }
+  .card-icon.video { background: #fee2e2; color: #991b1b; } /* Rojo suave */
+  .card-icon.pdf { background: #fff7ed; color: #9a3412; }   /* Naranja suave */
+  .card-icon.text { background: #f0f9ff; color: #075985; }  /* Azul suave */
+  .card-icon.quiz { background: #f3e8ff; color: #6b21a8; }  /* Morado suave */
+
+  .card-info { flex-grow: 1; display: flex; flex-direction: column; gap: 0.2rem; }
+  
+  .type-label { font-size: 0.7rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em; }
+  
+  .card-info h4 { margin: 0; font-size: 0.95rem; color: #334155; font-weight: 600; }
+
+  .card-action { font-size: 1.2rem; color: #cbd5e0; font-weight: bold; }
+  .content-card:hover .card-action { color: #3b82f6; }
+
+  .no-content { text-align: center; color: #a0aec0; font-style: italic; padding: 1rem; }
 </style>

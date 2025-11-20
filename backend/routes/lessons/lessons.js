@@ -133,4 +133,33 @@ router.put("/:id/completed", async (req, res) => {
   }
 });
 
+// GET /api/lessons/content/:contentId
+// Obtiene un contenido específico (subdocumento) buscándolo dentro de las lecciones
+router.get("/content/:contentId", async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    // Buscamos la lección que contiene este contentId y proyectamos solo ese elemento del array
+    const lesson = await Lesson.findOne(
+      { "contents._id": contentId },
+      { "contents.$": 1, title: 1, courseId: 1 } // Traemos el título de la lección también para contexto
+    );
+
+    if (!lesson || !lesson.contents || lesson.contents.length === 0) {
+      return res.status(404).json({ message: "Contenido no encontrado" });
+    }
+
+    // Devolvemos el objeto del contenido junto con info básica de la lección padre
+    const contentData = lesson.contents[0];
+    res.json({
+      ...contentData.toObject(),
+      lessonTitle: lesson.title,
+      lessonId: lesson._id,
+      courseId: lesson.courseId
+    });
+  } catch (err) {
+    console.error("Error fetching content:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;
