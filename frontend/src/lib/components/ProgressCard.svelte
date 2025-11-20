@@ -7,13 +7,13 @@
 <div class="progress-card">
   <div class="card-header">
     <h3>{course.title}</h3>
-    <span class="progress-badge">{course.progress}%</span>
+    <span class="progress-badge">{Math.round(course.progress)}%</span>
   </div>
   
   <div class="progress-bar">
     <div 
       class="progress-fill" 
-      style="width: {course.progress}%"
+      style="width: {Math.round(course.progress)}%"
     ></div>
   </div>
   
@@ -33,7 +33,7 @@
   </div>
   
   <div class="card-footer">
-    <button class="view-details-btn">Ver Detalles</button>
+    <a href="/cursos/{course.id}" class="view-details-btn">Ir al Curso</a>
   </div>
 </div>
 
@@ -112,6 +112,9 @@
   }
 
   .view-details-btn {
+    display: block;
+    text-align: center;
+    text-decoration: none;
     width: 100%;
     background: #edf2f7;
     color: #2d3748;
@@ -121,6 +124,7 @@
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s ease;
+    box-sizing: border-box;
   }
 
   .view-details-btn:hover {

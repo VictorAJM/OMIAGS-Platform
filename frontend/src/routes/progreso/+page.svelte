@@ -16,126 +16,101 @@
     averageGrade?: number;
   }
 
-  let username = "Juan Pérez";
+  let username = "";
   let viewerType = "student";
+  let coursesProgress: CourseProgress[] = [];
   
-  // Variables para paginación
   let currentPendingPage = 1;
   let currentGradesPage = 1;
   const itemsPerPage = 5;
 
-  // Datos hardcodeados
-  const coursesProgress: CourseProgress[] = [
-    {
-      id: "course1",
-      title: "Matemáticas Avanzadas",
-      completedLessons: 8,
-      totalLessons: 15,
-      progress: 53,
-      pendingLessons: [
-        { id: "l9", title: "Cálculo Diferencial" },
-        { id: "l10", title: "Cálculo Integral" },
-        { id: "l11", title: "Ecuaciones Diferenciales" },
-        { id: "l12", title: "Variable Compleja" },
-        { id: "l13", title: "Álgebra Lineal" },
-        { id: "l14", title: "Estadística" },
-        { id: "l15", title: "Probabilidad" }
-      ],
-      recentGrades: [
-        { quiz: "Quiz Álgebra", score: 85, date: "2024-01-15" },
-        { quiz: "Examen Parcial", score: 78, date: "2024-01-20" },
-        { quiz: "Quiz Trigonometría", score: 92, date: "2024-01-25" },
-        { quiz: "Tarea Cálculo", score: 88, date: "2024-01-30" },
-        { quiz: "Quiz Geometría", score: 75, date: "2024-02-05" },
-        { quiz: "Examen Final", score: 82, date: "2024-02-10" }
-      ],
-      averageGrade: 83
-    },
-    {
-      id: "course2",
-      title: "Física Moderna",
-      completedLessons: 5,
-      totalLessons: 12,
-      progress: 42,
-      pendingLessons: [
-        { id: "l6", title: "Relatividad Especial" },
-        { id: "l7", title: "Mecánica Cuántica" },
-        { id: "l8", title: "Física Nuclear" },
-        { id: "l9", title: "Física de Partículas" },
-        { id: "l10", title: "Astrofísica" },
-        { id: "l11", title: "Cosmología" },
-        { id: "l12", title: "Termodinámica Avanzada" }
-      ],
-      recentGrades: [
-        { quiz: "Quiz Mecánica", score: 90, date: "2024-01-16" },
-        { quiz: "Laboratorio 1", score: 85, date: "2024-01-23" },
-        { quiz: "Examen Óptica", score: 76, date: "2024-01-30" },
-        { quiz: "Quiz Electromagnetismo", score: 88, date: "2024-02-06" },
-        { quiz: "Proyecto Final", score: 94, date: "2024-02-13" }
-      ],
-      averageGrade: 87
-    },
-    {
-      id: "course3",
-      title: "Programación Web",
-      completedLessons: 10,
-      totalLessons: 12,
-      progress: 83,
-      pendingLessons: [
-        { id: "l11", title: "Despliegue en Producción" },
-        { id: "l12", title: "Optimización SEO" }
-      ],
-      recentGrades: [
-        { quiz: "HTML/CSS Test", score: 95, date: "2024-01-18" },
-        { quiz: "JavaScript Basics", score: 88, date: "2024-01-25" },
-        { quiz: "React Fundamentals", score: 92, date: "2024-02-01" },
-        { quiz: "Backend API", score: 85, date: "2024-02-08" }
-      ],
-      averageGrade: 90
-    },
-    {
-      id: "course4",
-      title: "Historia del Arte",
-      completedLessons: 6,
-      totalLessons: 10,
-      progress: 60,
-      pendingLessons: [
-        { id: "l7", title: "Arte Contemporáneo" },
-        { id: "l8", title: "Modernismo" },
-        { id: "l9", title: "Vanguardias" },
-        { id: "l10", title: "Arte Digital" }
-      ],
-      recentGrades: [
-        { quiz: "Arte Renacentista", score: 82, date: "2024-01-19" },
-        { quiz: "Barroco Europeo", score: 78, date: "2024-01-26" },
-        { quiz: "Arte Oriental", score: 85, date: "2024-02-02" },
-        { quiz: "Ensayo Crítico", score: 90, date: "2024-02-09" }
-      ],
-      averageGrade: 84
-    }
-  ];
+  const token = () =>
+  document.cookie.split('; ').find((row) => row.startsWith('session='))?.split('=')[1];
 
   onMount(async () => {
-    // Simular carga de datos
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const t = token();
+      if (!t) {
+        window.location.href = '/login';
+        return;
+      }
+      const headers = { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${t}` 
+      };
+
+      const userRes = await fetch("http://localhost:5000/api/auth/me", { headers });
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        username = userData.name;
+        viewerType = userData.role;
+      }
+
+      const coursesRes = await fetch("http://localhost:5000/api/courses", { headers });
+      if (!coursesRes.ok) throw new Error("Failed to fetch courses");
+      
+      const coursesData = await coursesRes.json();
+
+      const detailedCourses = await Promise.all(coursesData.map(async (course: any) => {
+        const lessonsRes = await fetch(`http://localhost:5000/api/courses/${course.id}/lessons`, { headers });
+        const lessonsData = await lessonsRes.json();
+
+        const quizzesRes = await fetch(`http://localhost:5000/api/quizzes?courseId=${course.id}`, { headers });
+        const quizzesData = await quizzesRes.json();
+
+        const gradesPromises = quizzesData.map(async (quiz: any) => {
+          const scoreRes = await fetch(`http://localhost:5000/api/quizzes/quiz-score?quizId=${quiz._id}`, { headers });
+          const scoreData = await scoreRes.json();
+          
+          if (scoreData.status === "Completed") {
+            return {
+              quiz: quiz.title,
+              score: scoreData.score,
+              date: new Date().toISOString()
+            };
+          }
+          return null;
+        });
+
+        const recentGrades = (await Promise.all(gradesPromises)).filter(g => g !== null);
+        const averageGrade = recentGrades.length > 0 
+          ? Math.round(recentGrades.reduce((acc, curr) => acc + curr.score, 0) / recentGrades.length) 
+          : 0;
+
+        const pending = lessonsData
+          .filter((l: any) => !l.completed)
+          .map((l: any) => ({ id: l._id, title: l.title }));
+
+        const completedCount = lessonsData.filter((l: any) => l.completed).length;
+
+        return {
+          id: course.id,
+          title: course.name,
+          completedLessons: completedCount,
+          totalLessons: lessonsData.length,
+          progress: course.personalProgress,
+          pendingLessons: pending,
+          recentGrades: recentGrades,
+          averageGrade: averageGrade
+        };
+      }));
+
+      coursesProgress = detailedCourses;
+    } catch (error) {
+      console.error(error);
+    }
   });
 
-  function getOverallProgress(): number {
-    if (coursesProgress.length === 0) return 0;
-    return Math.round(
-      coursesProgress.reduce((sum, course) => sum + course.progress, 0) / coursesProgress.length
-    );
-  }
+  $: overallProgress = coursesProgress.length === 0 
+    ? 0 
+    : Math.round(
+        coursesProgress.reduce((sum, course) => sum + (course.progress || 0), 0) / coursesProgress.length
+      );
 
-  function getTotalCompleted(): number {
-    return coursesProgress.reduce((sum, course) => sum + course.completedLessons, 0);
-  }
+  $: totalCompleted = coursesProgress.reduce((sum, course) => sum + (course.completedLessons || 0), 0);
 
-  function getTotalPending(): number {
-    return coursesProgress.reduce((sum, course) => sum + course.pendingLessons.length, 0);
-  }
+  $: totalPending = coursesProgress.reduce((sum, course) => sum + (course.pendingLessons?.length || 0), 0);
 
-  // VARIABLES REACTIVAS para los datos paginados
   $: paginatedPendingLessons = (() => {
     const allLessons = coursesProgress.flatMap(course => 
       course.pendingLessons.map(lesson => ({
@@ -160,7 +135,6 @@
       }))
     );
     
-    // Ordenar por fecha más reciente primero
     allGrades.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const startIndex = (currentGradesPage - 1) * itemsPerPage;
@@ -169,14 +143,12 @@
     return allGrades.slice(startIndex, endIndex);
   })();
 
-  // Calcular total de páginas (reactivo)
   $: totalPendingLessons = coursesProgress.reduce((sum, course) => sum + course.pendingLessons.length, 0);
   $: totalPendingPages = Math.ceil(totalPendingLessons / itemsPerPage);
   
   $: totalRecentGrades = coursesProgress.reduce((sum, course) => sum + course.recentGrades.length, 0);
   $: totalGradesPages = Math.ceil(totalRecentGrades / itemsPerPage);
 
-  // Funciones para cambiar página
   function handlePendingPageChange(page: number) {
     currentPendingPage = page;
   }
@@ -185,13 +157,10 @@
     currentGradesPage = page;
   }
 
-  // Función para continuar lección
   function continueLesson(courseId: string, lessonId: string) {
-    console.log(`Continuando lección ${lessonId} del curso ${courseId}`);
-    alert(`Continuando lección del curso ${coursesProgress.find(c => c.id === courseId)?.title}`);
+    window.location.href = `/cursos/${courseId}`;
   }
 </script>
-
 
 <NavBar {viewerType} {username} />
 
@@ -203,7 +172,6 @@
     </div>
   </div>
 
-  <!-- Overall Metrics -->
   <div class="metrics-grid">
     <div class="metric-card">
       <div class="metric-icon">📚</div>
@@ -216,7 +184,7 @@
     <div class="metric-card">
       <div class="metric-icon">✅</div>
       <div class="metric-content">
-        <h3>{getTotalCompleted()}</h3>
+        <h3>{totalCompleted}</h3>
         <p>Lecciones Completadas</p>
       </div>
     </div>
@@ -224,7 +192,7 @@
     <div class="metric-card">
       <div class="metric-icon">⏳</div>
       <div class="metric-content">
-        <h3>{getTotalPending()}</h3>
+        <h3>{totalPending}</h3>
         <p>Lecciones Pendientes</p>
       </div>
     </div>
@@ -232,20 +200,18 @@
     <div class="metric-card">
       <div class="metric-icon">📈</div>
       <div class="metric-content">
-        <h3>{getOverallProgress()}%</h3>
+        <h3>{overallProgress}%</h3>
         <p>Progreso General</p>
       </div>
     </div>
   </div>
 
-  <!-- Course Progress Grid -->
   <div class="progress-grid">
     {#each coursesProgress as course}
       <ProgressCard {course} />
     {/each}
   </div>
 
-  <!-- Detailed Stats Section con Paginación -->
   <div class="detailed-stats">
     <StatsCard title="Próximas Lecciones Pendientes">
       <div class="stats-content">
