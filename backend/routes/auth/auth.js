@@ -33,8 +33,15 @@ router.post("/login", async (req, res) => {
       { expiresIn: JWT_EXPIRES },
     );
 
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     return res.json({
-      token,
+      message: "Login exitoso",
       user: { id: user._id, name: user.name, email: user.email },
     });
   } catch (e) {
@@ -42,6 +49,12 @@ router.post("/login", async (req, res) => {
     return res.status(500).json({ error: "Error interno" });
   }
 });
+
+router.post("/logout", (req, res) => {
+  res.clearCookie("token");
+  return res.json({ message: "Logout exitoso" });
+});
+
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body ?? {};
@@ -72,8 +85,15 @@ router.post("/register", async (req, res) => {
       { expiresIn: JWT_EXPIRES },
     );
 
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     return res.status(201).json({
-      token,
+      message: "Registro exitoso",
       user: { id: user._id, name: user.name, email: user.email },
     });
   } catch (e) {
@@ -89,12 +109,11 @@ router.post("/register", async (req, res) => {
 // ✅ GET /api/auth/me — get current user info
 router.get("/me", async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    const token = req.cookies.token;
+    if (!token) {
       return res.status(401).json({ error: "No token" });
     }
 
-    const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const user = await User.findById(decoded.sub).select("name email role");
@@ -150,8 +169,15 @@ router.put("/change-password", requireAuth, async (req, res) => {
       { expiresIn: JWT_EXPIRES },
     );
 
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     return res.status(201).json({
-      token,
+      message: "Contraseña actualizada",
       user: { id: user._id, name: user.name, email: user.email },
     });
   } catch (e) {

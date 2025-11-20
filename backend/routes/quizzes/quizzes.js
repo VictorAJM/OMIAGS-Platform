@@ -288,7 +288,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
     console.error(err);
     return res
       .status(500)
-      .json({ message: "Server error while creating quiz." });
+      .json({ message: "Server error while registering answer." });
   }
 });
 

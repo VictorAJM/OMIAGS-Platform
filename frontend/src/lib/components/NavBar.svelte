@@ -11,31 +11,17 @@
   let showModal = false;
   let isLoading = true;
 
-  const getCookie = (name) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-  };
-
   onMount(async () => {
     await fetchUserData();
   });
 
   const fetchUserData = async () => {
     try {
-      const token = getCookie('session');
-      
-      if (!token) {
-        window.location.href = "/login";
-        return;
-      }
-
       const userRes = await fetch("http://localhost:5000/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (userRes.status === 401) {
-        document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         window.location.href = "/login";
         return;
       }
@@ -50,12 +36,10 @@
 
       navItems = createNav(viewerType).map((item) => ({
         ...item,
-        active: window.location.pathname === item.href
+        active: window.location.pathname === item.href,
       }));
-
     } catch (error) {
       console.error(error);
-      document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       window.location.href = "/login";
     } finally {
       isLoading = false;
@@ -63,20 +47,28 @@
   };
 
   const logout = () => (showModal = true);
-  
-  const confirmLogout = () => {
-    document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    window.location.href = "/login";
+
+  const confirmLogout = async () => {
+    try {
+      await fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      window.location.href = "/login";
+    } catch (e) {
+      console.error("Logout failed", e);
+      window.location.href = "/login";
+    }
   };
-  
+
   const cancelLogout = () => (showModal = false);
 
   const selectNavItem = (index) => {
     navItems = navItems.map((item, i) => ({
       ...item,
-      active: i === index
+      active: i === index,
     }));
-    
+
     if (typeof window !== "undefined") {
       window.location.href = navItems[index].href;
     }
@@ -100,8 +92,8 @@
       <ul class="nav-links">
         {#each navItems as item, i}
           <li>
-            <a 
-              href={item.href} 
+            <a
+              href={item.href}
               class:active={item.active}
               on:click|preventDefault={() => selectNavItem(i)}
             >
@@ -119,8 +111,25 @@
         <div class="avatar">
           {username.charAt(0).toUpperCase()}
         </div>
-        <button class="logout-btn" on:click|preventDefault={logout} title="Cerrar Sesión">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        <button
+          class="logout-btn"
+          on:click|preventDefault={logout}
+          title="Cerrar Sesión"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline
+              points="16 17 21 12 16 7"
+            ></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg
+          >
         </button>
       </div>
     </div>
@@ -128,10 +137,7 @@
 
   {#if showModal}
     <div in:fade out:fade>
-      <ConfirmLogoutModal
-        on:confirm={confirmLogout}
-        on:cancel={cancelLogout}
-      />
+      <ConfirmLogoutModal on:confirm={confirmLogout} on:cancel={cancelLogout} />
     </div>
   {/if}
 {/if}
@@ -139,7 +145,11 @@
 <style>
   :global(body) {
     margin: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family:
+      "Inter",
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
     background-color: #f8fafc;
   }
 
@@ -241,7 +251,8 @@
     color: #0369a1;
   }
 
-  .role-badge.admin, .role-badge.teacher {
+  .role-badge.admin,
+  .role-badge.teacher {
     background-color: #fdf2f8;
     color: #be185d;
   }
@@ -288,21 +299,59 @@
     padding: 0 2rem;
   }
 
-  .skeleton-logo { width: 120px; height: 24px; background: #f1f5f9; border-radius: 4px; animation: pulse 1.5s infinite; }
-  .skeleton-links { width: 300px; height: 32px; background: #f1f5f9; border-radius: 6px; animation: pulse 1.5s infinite; }
-  .skeleton-profile { width: 150px; height: 36px; background: #f1f5f9; border-radius: 18px; animation: pulse 1.5s infinite; }
+  .skeleton-logo {
+    width: 120px;
+    height: 24px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    animation: pulse 1.5s infinite;
+  }
+  .skeleton-links {
+    width: 300px;
+    height: 32px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    animation: pulse 1.5s infinite;
+  }
+  .skeleton-profile {
+    width: 150px;
+    height: 36px;
+    background: #f1f5f9;
+    border-radius: 18px;
+    animation: pulse 1.5s infinite;
+  }
 
   @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
   }
 
   @media (max-width: 768px) {
-    .nav-container { padding: 0 1rem; }
-    .username, .role-badge { display: none; }
-    .nav-links { gap: 0.25rem; }
-    .nav-links a { padding: 0.5rem; font-size: 0.85rem; }
-    .profile-section { padding-left: 0.5rem; gap: 0.5rem; border: none; }
+    .nav-container {
+      padding: 0 1rem;
+    }
+    .username,
+    .role-badge {
+      display: none;
+    }
+    .nav-links {
+      gap: 0.25rem;
+    }
+    .nav-links a {
+      padding: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .profile-section {
+      padding-left: 0.5rem;
+      gap: 0.5rem;
+      border: none;
+    }
   }
 </style>

@@ -21,29 +21,14 @@
   let saveMessage = "";
 
   // Utilidad para obtener token JWT de la cookie "session"
-  function getToken() {
-    return document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("session="))
-      ?.split("=")[1];
-  }
 
   onMount(async () => {
-    const token = getToken();
-
-    if (!token) {
-      window.location.href = "/login";
-      return;
-    }
-
     try {
       const userRes = await fetch("http://localhost:5000/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (userRes.status === 401) {
-        document.cookie =
-          "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         window.location.href = "/login";
         return;
       }
@@ -59,9 +44,6 @@
   });
 
   async function changePassword() {
-    const token = getToken();
-    if (!token) return;
-
     if (
       !profile.currentPassword ||
       !profile.newPassword ||
@@ -75,7 +57,7 @@
     try {
       // Obtener ID del usuario usando /api/auth/me
       const me = await fetch("http://localhost:5000/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
 
       if (!me.ok) throw new Error("No se pudo validar token");
@@ -86,9 +68,9 @@
         `http://localhost:5000/api/auth/change-password`,
         {
           method: "PUT",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             oldPassword: profile.currentPassword,
