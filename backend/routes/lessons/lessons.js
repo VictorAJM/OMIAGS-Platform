@@ -1,6 +1,7 @@
 import express from "express";
 import Lesson from "../../models/Lesson.js";
 import Enrollment from "../../models/Enrollments.js";
+import { requireAuth } from "../../../middleware/auth.js";
 
 const router = express.Router();
 
@@ -104,16 +105,16 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.put("/:id/toggle-completion", async (req, res) => {
+router.put("/:id/toggle-completion", requireAuth, async (req, res) => {
   try {
-    const { userId, completed } = req.body;
+    const { completed } = req.body;
+    const userId = req.user._id;
+    const lessonId = req.params.id; // This is a String
 
     if (!userId) return res.status(400).json({ message: "User ID required" });
     if (typeof completed !== "boolean") {
       return res.status(400).json({ message: "Completed must be boolean" });
     }
-
-    const lessonId = req.params.id;
 
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) return res.status(404).json({ message: "Lesson not found" });
@@ -124,30 +125,33 @@ router.put("/:id/toggle-completion", async (req, res) => {
     });
 
     if (!enrollment) {
-      return res
-        .status(404)
-        .json({ message: "Student is not enrolled in this course" });
+      return res.status(404).json({ message: "Not enrolled" });
     }
 
+    // Helper to check if ID exists (handles ObjectId vs String comparison)
+    const isLessonCompleted = enrollment.completedLessons.some(
+      (id) => id.toString() === lessonId
+    );
+
     if (completed) {
-      if (!enrollment.completedLessons.includes(lessonId)) {
+      // Only push if it's NOT already there
+      if (!isLessonCompleted) {
         enrollment.completedLessons.push(lessonId);
       }
     } else {
+      // Filter out the lesson
       enrollment.completedLessons = enrollment.completedLessons.filter(
-        (id) => id.toString() !== lessonId,
+        (id) => id.toString() !== lessonId
       );
     }
 
     await enrollment.save();
 
     res.json({
-      message: completed
-        ? "Lesson marked as complete"
-        : "Lesson marked as incomplete",
-      studentProgress: enrollment.studentProgress,
+      message: completed ? "Marked complete" : "Marked incomplete",
       completedLessons: enrollment.completedLessons,
     });
+
   } catch (err) {
     console.error("Error toggling completion:", err);
     res.status(500).json({ message: "Server error" });

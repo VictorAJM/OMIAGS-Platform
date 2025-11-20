@@ -119,15 +119,17 @@
     } else {
       completedLessonIds = completedLessonIds.filter((id) => id !== lesson._id);
     }
-
+    console.log(newStatus);
     try {
       const res = await fetch(
         `${API_BASE}/api/lessons/${lesson._id}/toggle-completion`,
         {
           method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
           credentials: "include",
           body: JSON.stringify({
-            userId: userId,
             completed: newStatus,
           }),
         },
@@ -135,8 +137,6 @@
 
       if (!res.ok) throw new Error("Fallo al guardar");
 
-      // 2. [CORRECCIÓN] Sincronización con el servidor
-      // Es importante usar la respuesta del servidor para confirmar el estado real
       const data = await res.json();
       if (data.completedLessons) {
         completedLessonIds = data.completedLessons.map((id) => id.toString());
