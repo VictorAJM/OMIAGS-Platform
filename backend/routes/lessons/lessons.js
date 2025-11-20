@@ -6,19 +6,19 @@ const router = express.Router();
 
 const validateContent = (contents) => {
   if (!Array.isArray(contents)) return "Contents must be an array";
-  
+
   for (let item of contents) {
     if (!item.title) return "All contents must have a title";
-    if (!['video', 'pdf', 'text', 'quiz'].includes(item.type)) {
+    if (!["video", "pdf", "text", "quiz"].includes(item.type)) {
       return `Invalid content type: ${item.type}`;
     }
-    if ((item.type === 'video' || item.type === 'pdf') && !item.url) {
+    if ((item.type === "video" || item.type === "pdf") && !item.url) {
       return `Content "${item.title}" requires a URL`;
     }
-    if (item.type === 'text' && !item.textContent) {
+    if (item.type === "text" && !item.textContent) {
       return `Content "${item.title}" requires textContent`;
     }
-    if (item.type === 'quiz' && !item.quizId) {
+    if (item.type === "quiz" && !item.quizId) {
       return `Content "${item.title}" requires a quizId`;
     }
   }
@@ -49,7 +49,7 @@ router.get("/:courseId/lessons", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { courseId, title, description, contents } = req.body;
-    
+
     if (!courseId || !title)
       return res.status(400).json({ message: "courseId and title required" });
 
@@ -77,11 +77,11 @@ router.put("/:id", async (req, res) => {
 
     if (title !== undefined) lesson.title = title;
     if (description !== undefined) lesson.description = description;
-    
+
     if (contents !== undefined) {
-       const error = validateContent(contents);
-       if (error) return res.status(400).json({ message: error });
-       lesson.contents = contents;
+      const error = validateContent(contents);
+      if (error) return res.status(400).json({ message: error });
+      lesson.contents = contents;
     }
 
     await lesson.save();
@@ -106,7 +106,7 @@ router.delete("/:id", async (req, res) => {
 
 router.put("/:id/toggle-completion", async (req, res) => {
   try {
-    const { userId, completed } = req.body; 
+    const { userId, completed } = req.body;
 
     if (!userId) return res.status(400).json({ message: "User ID required" });
     if (typeof completed !== "boolean") {
@@ -118,13 +118,15 @@ router.put("/:id/toggle-completion", async (req, res) => {
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) return res.status(404).json({ message: "Lesson not found" });
 
-    const enrollment = await Enrollment.findOne({ 
-      student: userId, 
-      course: lesson.courseId 
+    const enrollment = await Enrollment.findOne({
+      student: userId,
+      course: lesson.courseId,
     });
 
     if (!enrollment) {
-      return res.status(404).json({ message: "Student is not enrolled in this course" });
+      return res
+        .status(404)
+        .json({ message: "Student is not enrolled in this course" });
     }
 
     if (completed) {
@@ -133,18 +135,19 @@ router.put("/:id/toggle-completion", async (req, res) => {
       }
     } else {
       enrollment.completedLessons = enrollment.completedLessons.filter(
-        (id) => id.toString() !== lessonId
+        (id) => id.toString() !== lessonId,
       );
     }
 
     await enrollment.save();
 
-    res.json({ 
-      message: completed ? "Lesson marked as complete" : "Lesson marked as incomplete",
+    res.json({
+      message: completed
+        ? "Lesson marked as complete"
+        : "Lesson marked as incomplete",
       studentProgress: enrollment.studentProgress,
-      completedLessons: enrollment.completedLessons
+      completedLessons: enrollment.completedLessons,
     });
-
   } catch (err) {
     console.error("Error toggling completion:", err);
     res.status(500).json({ message: "Server error" });
@@ -156,7 +159,7 @@ router.get("/content/:contentId", async (req, res) => {
     const { contentId } = req.params;
     const lesson = await Lesson.findOne(
       { "contents._id": contentId },
-      { "contents.$": 1, title: 1, courseId: 1 }
+      { "contents.$": 1, title: 1, courseId: 1 },
     );
 
     if (!lesson || !lesson.contents || lesson.contents.length === 0) {
@@ -168,7 +171,7 @@ router.get("/content/:contentId", async (req, res) => {
       ...contentData.toObject(),
       lessonTitle: lesson.title,
       lessonId: lesson._id,
-      courseId: lesson.courseId
+      courseId: lesson.courseId,
     });
   } catch (err) {
     console.error("Error fetching content:", err);
