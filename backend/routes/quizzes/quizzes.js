@@ -304,10 +304,6 @@ router.post("/no-auth-submit-answer", async (req, res) => {
   // We will need to add user data here and some validations to store progress and grades
   try {
     const { quizId, userId, questionIndex, answer } = req.body;
-    console.log(quizId);
-    console.log(userId);
-    console.log(questionIndex);
-    console.log(answer);
 
     // Basic validation to ensure required fields are present
     if (quizId === null || userId === null || questionIndex === null || answer == null) {
