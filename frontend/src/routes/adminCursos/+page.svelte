@@ -80,7 +80,7 @@
         // Mapeo de datos del backend
         courses = list.map((c: any) => ({
           id: c.id,
-          title: c.name || c.title,
+          title: c.name || c.title || "a",
           description: c.description || "",
           category: c.category,
           students: new Array(c.studentsCount || 0).fill('student'), 

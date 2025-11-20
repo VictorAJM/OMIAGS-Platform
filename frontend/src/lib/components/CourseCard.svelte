@@ -15,7 +15,7 @@
 
   function onCourseUpdated(event) {
     const updated = event.detail;
-    course.name = updated.title;
+    course.title = updated.title;
     course.description = updated.description;
     course.level = updated.category;
     course.students = updated.students;
@@ -37,7 +37,7 @@
   </div>
 
   <div class="course-content">
-    <h3>{course.name}</h3>
+    <h3>{course.title}</h3>
     <p>{course.description}</p>
     <div class="course-meta">
       <span class="badge {course.level}">{course.level}</span>
