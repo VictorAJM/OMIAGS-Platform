@@ -5,6 +5,16 @@
   import Pagination from "../../lib/components/Pagination.svelte";
   import { onMount } from "svelte";
 
+  interface GradeEntry {
+    quizId: string;
+    quiz: string;
+    score: number;
+    date: string;
+    courseTitle: string;
+    courseId: string;
+    lessonId: string;
+  }
+
   interface CourseProgress {
     id: string;
     title: string;
@@ -12,13 +22,14 @@
     totalLessons: number;
     progress: number;
     pendingLessons: { id: string; title: string }[];
-    recentGrades: { quiz: string; score: number; date: string }[];
-    averageGrade?: number;
+    recentGrades: GradeEntry[];
+    averageGrade: number;
   }
 
   let username = "";
   let viewerType = "student";
   let coursesProgress: CourseProgress[] = [];
+  let loading = true;
 
   let currentPendingPage = 1;
   let currentGradesPage = 1;
@@ -26,7 +37,6 @@
 
   onMount(async () => {
     try {
-      // 1. Fetch User
       const userRes = await fetch("http://localhost:5000/api/auth/me", {
         credentials: "include",
       });
@@ -36,92 +46,80 @@
         viewerType = userData.role;
       }
 
-      // 2. Fetch Courses
       const coursesRes = await fetch("http://localhost:5000/api/courses", {
         credentials: "include",
       });
-      if (!coursesRes.ok) throw new Error("Failed to fetch courses");
-
+      if (!coursesRes.ok) throw new Error("Error al obtener cursos");
       const coursesData = await coursesRes.json();
 
-      // 3. Build Detailed Progress
       const detailedCourses = await Promise.all(
         coursesData.map(async (course: any) => {
-          // A. Fetch Lessons for this course
           const lessonsRes = await fetch(
             `http://localhost:5000/api/courses/${course.id}/lessons`,
             { credentials: "include" }
           );
           const lessonsData = await lessonsRes.json();
 
-          // B. Fetch Quizzes & Scores PER LESSON (Since API requires lessonId)
-          const lessonGradesPromises = lessonsData.map(async (lesson: any) => {
+          const gradesPromises = lessonsData.map(async (lesson: any) => {
             try {
-              // Fetch quiz for this specific lesson
               const quizRes = await fetch(
                 `http://localhost:5000/api/quizzes?lessonId=${lesson._id}`,
                 { credentials: "include" }
               );
               
               if (!quizRes.ok) return null;
-              
               const quizzes = await quizRes.json();
-              
-              // If a quiz exists for this lesson
+
               if (quizzes && quizzes.length > 0) {
-                const quiz = quizzes[0]; // Assuming 1 quiz per lesson
+                const quiz = quizzes[0]; 
                 
-                // Fetch score for this quiz
                 const scoreRes = await fetch(
                   `http://localhost:5000/api/quizzes/quiz-score?quizId=${quiz._id}`,
                   { credentials: "include" }
                 );
+                
+                if (!scoreRes.ok) return null;
                 const scoreData = await scoreRes.json();
-
-                if (scoreData.status === "Completed") {
-                  return {
-                    quiz: quiz.title,
-                    score: scoreData.score || 0, // Handle potential NaN from backend
-                    date: new Date().toISOString(), // API doesn't return date, using current
-                  };
-                }
+        
+                return {
+                  quizId: quiz._id,
+                  quiz: quiz.title,
+                  score: typeof scoreData.score === 'number' ? scoreData.score : 0,
+                  date: new Date().toISOString(),
+                  courseTitle: course.name,
+                  courseId: course.id,
+                  lessonId: lesson._id
+                } as GradeEntry;
+                
               }
+              return null; 
             } catch (e) {
-              console.error(`Error fetching quiz for lesson ${lesson._id}`, e);
+              return null;
             }
-            return null;
           });
 
-          // Resolve all quiz checks for this course
-          const gradesResults = await Promise.all(lessonGradesPromises);
-          const recentGrades = gradesResults.filter((g) => g !== null);
+          const results = await Promise.all(gradesPromises);
+          const validGrades = results.filter((g): g is GradeEntry => g !== null && g !== undefined);
 
-          // C. Calculate Stats
-          const averageGrade =
-            recentGrades.length > 0
-              ? Math.round(
-                  recentGrades.reduce((acc, curr) => acc + curr.score, 0) /
-                    recentGrades.length
-                )
-              : 0;
+          const avgGrade = validGrades.length > 0
+            ? parseFloat((validGrades.reduce((acc, curr) => acc + curr.score, 0) / validGrades.length).toFixed(2))
+            : 0;
 
           const pending = lessonsData
             .filter((l: any) => !l.completed)
             .map((l: any) => ({ id: l._id, title: l.title }));
 
-          const completedCount = lessonsData.filter(
-            (l: any) => l.completed
-          ).length;
+          const completedCount = lessonsData.filter((l: any) => l.completed).length;
 
           return {
             id: course.id,
             title: course.name,
             completedLessons: completedCount,
             totalLessons: lessonsData.length,
-            progress: course.personalProgress,
+            progress: course.personalProgress || 0,
             pendingLessons: pending,
-            recentGrades: recentGrades,
-            averageGrade: averageGrade,
+            recentGrades: validGrades,
+            averageGrade: avgGrade,
           };
         })
       );
@@ -129,83 +127,45 @@
       coursesProgress = detailedCourses;
     } catch (error) {
       console.error(error);
+    } finally {
+      loading = false;
     }
   });
 
-  $: overallProgress =
-    coursesProgress.length === 0
-      ? 0
-      : Math.round(
-          coursesProgress.reduce(
-            (sum, course) => sum + (course.progress || 0),
-            0
-          ) / coursesProgress.length
-        );
-
-  $: totalCompleted = coursesProgress.reduce(
-    (sum, course) => sum + (course.completedLessons || 0),
-    0
-  );
-
-  $: totalPending = coursesProgress.reduce(
-    (sum, course) => sum + (course.pendingLessons?.length || 0),
-    0
-  );
-
-  $: paginatedPendingLessons = (() => {
-    const allLessons = coursesProgress.flatMap((course) =>
-      course.pendingLessons.map((lesson) => ({
-        ...lesson,
-        courseTitle: course.title,
-        courseId: course.id,
-      }))
-    );
-
-    const startIndex = (currentPendingPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-
-    return allLessons.slice(startIndex, endIndex);
+  $: globalAverage = (() => {
+    const allGrades = coursesProgress.flatMap(c => c.recentGrades);
+    if (allGrades.length === 0) return 0;
+    const sum = allGrades.reduce((acc, curr) => acc + curr.score, 0);
+    return Math.round(sum / allGrades.length);
   })();
+
+  $: totalCompleted = coursesProgress.reduce((sum, c) => sum + c.completedLessons, 0);
+  
+  $: totalPendingLessons = coursesProgress.reduce((sum, c) => sum + c.pendingLessons.length, 0);
+  
+  $: paginatedPendingLessons = (() => {
+    const all = coursesProgress.flatMap(c => 
+      c.pendingLessons.map(l => ({...l, courseTitle: c.title, courseId: c.id}))
+    );
+    const start = (currentPendingPage - 1) * itemsPerPage;
+    return all.slice(start, start + itemsPerPage);
+  })();
+  $: totalPendingPages = Math.ceil(totalPendingLessons / itemsPerPage) || 1;
+
+  $: allRecentGrades = coursesProgress
+      .flatMap(c => c.recentGrades)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   $: paginatedRecentGrades = (() => {
-    const allGrades = coursesProgress.flatMap((course) =>
-      course.recentGrades.map((grade) => ({
-        ...grade,
-        courseTitle: course.title,
-        courseId: course.id,
-      }))
-    );
-
-    allGrades.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
-    const startIndex = (currentGradesPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-
-    return allGrades.slice(startIndex, endIndex);
+    const start = (currentGradesPage - 1) * itemsPerPage;
+    return allRecentGrades.slice(start, start + itemsPerPage);
   })();
 
-  $: totalPendingLessons = coursesProgress.reduce(
-    (sum, course) => sum + course.pendingLessons.length,
-    0
-  );
-  $: totalPendingPages = Math.ceil(totalPendingLessons / itemsPerPage);
+  $: totalRecentGrades = allRecentGrades.length;
+  $: totalGradesPages = Math.ceil(totalRecentGrades / itemsPerPage) || 1;
 
-  $: totalRecentGrades = coursesProgress.reduce(
-    (sum, course) => sum + course.recentGrades.length,
-    0
-  );
-  $: totalGradesPages = Math.ceil(totalRecentGrades / itemsPerPage);
-
-  function handlePendingPageChange(page: number) {
-    currentPendingPage = page;
-  }
-
-  function handleGradesPageChange(page: number) {
-    currentGradesPage = page;
-  }
-
+  function handlePendingPageChange(page: number) { currentPendingPage = page; }
+  function handleGradesPageChange(page: number) { currentGradesPage = page; }
   function continueLesson(courseId: string, lessonId: string) {
     window.location.href = `/cursos/${courseId}`;
   }
@@ -217,7 +177,7 @@
   <div class="page-header">
     <div class="header-info">
       <h2>Mi Progreso Académico</h2>
-      <p>Revisa tu avance y desempeño en todos los cursos</p>
+      <p>Revisa tu avance, calificaciones y desempeño.</p>
     </div>
   </div>
 
@@ -239,29 +199,34 @@
     </div>
 
     <div class="metric-card">
-      <div class="metric-icon">⏳</div>
+      <div class="metric-icon">📝</div>
       <div class="metric-content">
-        <h3>{totalPending}</h3>
-        <p>Lecciones Pendientes</p>
+        <h3>{totalRecentGrades}</h3>
+        <p>Exámenes Realizados</p>
       </div>
     </div>
 
     <div class="metric-card">
-      <div class="metric-icon">📈</div>
+      <div class="metric-icon">🏆</div>
       <div class="metric-content">
-        <h3>{overallProgress}%</h3>
-        <p>Progreso General</p>
+        <h3>{globalAverage}%</h3>
+        <p>Promedio General</p>
       </div>
     </div>
   </div>
 
   <div class="progress-grid">
-    {#each coursesProgress as course}
-      <ProgressCard {course} />
-    {/each}
+    {#if loading}
+      <p>Cargando progreso...</p>
+    {:else}
+      {#each coursesProgress as course}
+        <ProgressCard {course} />
+      {/each}
+    {/if}
   </div>
 
   <div class="detailed-stats">
+    
     <StatsCard title="Próximas Lecciones Pendientes">
       <div class="stats-content">
         <div class="pending-lessons-list">
@@ -279,8 +244,8 @@
           {:else}
             <div class="no-items">
               <div class="no-items-icon">🎉</div>
-              <p>¡No hay lecciones pendientes!</p>
-              <small>Todas las lecciones están completadas</small>
+              <p>¡Estás al día!</p>
+              <small>No tienes lecciones pendientes</small>
             </div>
           {/each}
         </div>
@@ -289,7 +254,6 @@
           <div class="pagination-info">
             <span class="pagination-text">
               Página {currentPendingPage} de {totalPendingPages}
-              ({totalPendingLessons} lecciones en total)
             </span>
             <Pagination
               currentPage={currentPendingPage}
@@ -301,7 +265,7 @@
       </div>
     </StatsCard>
 
-    <StatsCard title="Calificaciones Recientes">
+    <StatsCard title="Historial de Calificaciones">
       <div class="stats-content">
         <div class="grades-list">
           {#each paginatedRecentGrades as grade}
@@ -310,26 +274,28 @@
                 <span class="quiz-name">{grade.quiz}</span>
                 <span class="course-name">{grade.courseTitle}</span>
               </div>
-              <div
-                class="grade-score {grade.score >= 90
-                  ? 'excellent-score'
-                  : grade.score >= 80
-                    ? 'high-score'
-                    : grade.score >= 70
-                      ? 'medium-score'
-                      : 'low-score'}"
-              >
+              
+              <div class="grade-score {
+                  grade.score >= 90 ? 'excellent-score' : 
+                  grade.score >= 80 ? 'high-score' : 
+                  grade.score >= 70 ? 'medium-score' : 'low-score'
+                }">
                 {grade.score}%
               </div>
-              <div class="grade-date">
-                {new Date(grade.date).toLocaleDateString("es-ES")}
-              </div>
+              
+              <button
+                class="review-btn"
+                on:click={() => continueLesson(grade.courseId, grade.lessonId)}
+              >
+                Ver Quiz
+              </button>
+
             </div>
           {:else}
             <div class="no-items">
-              <div class="no-items-icon">📝</div>
-              <p>No hay calificaciones registradas</p>
-              <small>Las calificaciones aparecerán aquí</small>
+              <div class="no-items-icon">📊</div>
+              <p>Sin calificaciones aún</p>
+              <small>Completa lecciones y quizzes para ver tu historial</small>
             </div>
           {/each}
         </div>
@@ -338,7 +304,6 @@
           <div class="pagination-info">
             <span class="pagination-text">
               Página {currentGradesPage} de {totalGradesPages}
-              ({totalRecentGrades} calificaciones en total)
             </span>
             <Pagination
               currentPage={currentGradesPage}
@@ -587,12 +552,6 @@
     color: #742a2a;
   }
 
-  .grade-date {
-    font-size: 0.8rem;
-    color: #718096;
-    white-space: nowrap;
-  }
-
   .no-items {
     text-align: center;
     color: #718096;
@@ -635,5 +594,24 @@
     font-size: 0.8rem;
     color: #718096;
     text-align: center;
+  }
+
+  .review-btn {
+    background: #4299e1; /* Azul en lugar de verde */
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    margin-left: 1rem;
+  }
+
+  .review-btn:hover {
+    background: #3182ce;
+    transform: translateY(-1px);
   }
 </style>
