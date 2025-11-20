@@ -9,7 +9,6 @@ const questionSchema = new mongoose.Schema({
     type: String,
     required: [true, "A question title is required."],
   },
-  // The type of question determines how answers are structured and validated.
   type: {
     type: String,
     required: true,
@@ -21,25 +20,18 @@ const questionSchema = new mongoose.Schema({
       "complete-the-code",
     ],
   },
-  // Points this question is worth.
   value: {
     type: Number,
     default: 1,
   },
-  // Array of possible choices for multiple-choice or multiple-answer questions.
   options: {
     type: [String],
-    default: undefined, // Will not be present unless it's a multiple-choice/answer question
+    default: undefined,
   },
   code: {
     type: String,
-    default: undefined, // Will not be present unless it's a multiple-choice/answer question
+    default: undefined,
   },
-  // The correct answer. The data type depends on the question `type`.
-  // - 'multiple-choice': String (the correct option text)
-  // - 'true-false': Boolean
-  // - 'fill-in-the-blank': String
-  // - 'multiple-answer': [String] (array of correct option texts)
   correctAnswer: {
     type: mongoose.Schema.Types.Mixed,
     required: [true, "The correct answer is required."],
@@ -60,22 +52,19 @@ const quizSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    // Associates the quiz with a specific course.
-    courseId: {
+    // CHANGED: Associates the quiz with a specific LESSON instead of a Course.
+    lessonId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Course",
+      ref: "Lesson",
       required: true,
     },
-    // Maximum score for the quiz.
     maxScore: {
       type: Number,
       default: 0,
     },
-    // An array of questions, each following the questionSchema structure.
     questions: [questionSchema],
   },
   {
-    // Automatically adds createdAt and updatedAt timestamps.
     timestamps: true,
   },
 );

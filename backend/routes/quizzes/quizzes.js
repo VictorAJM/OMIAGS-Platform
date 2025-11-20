@@ -5,19 +5,19 @@ import QuizAttempt from "../../models/QuizAttempt.js";
 
 const router = express.Router();
 
-// GET /api/quizzes?courseId=...
-// Gets all quizzes for a specific course
+// GET /api/quizzes?lessonId=...
+// Gets all quizzes for a specific LESSON
 router.get("/", async (req, res) => {
   try {
-    const { courseId } = req.query;
-    if (!courseId) {
+    const { lessonId } = req.query;
+    
+    if (!lessonId) {
       return res
         .status(400)
-        .json({ message: "A courseId query parameter is required." });
+        .json({ message: "A lessonId query parameter is required." });
     }
 
-    // Find all quizzes that have the matching quizId
-    const quizzes = await Quiz.find({ courseId }).select("title description");
+    const quizzes = await Quiz.find({ lessonId }).select("title description");
 
     return res.json(quizzes);
   } catch (err) {
@@ -29,11 +29,9 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/quizzes/list
-// Get a list of all quizzes
 router.get("/list", async (req, res) => {
   try {
     const quizzes = await Quiz.find().select("_id title description");
-
     return res.json(quizzes);
   } catch (err) {
     console.error(err);
@@ -43,8 +41,7 @@ router.get("/list", async (req, res) => {
   }
 });
 
-// GET /api/quizzes/get-score
-// Get the score of a given user on a given quiz
+// GET /api/quizzes/quiz-score
 router.get("/quiz-score", requireAuth, async (req, res) => {
   let { quizId, userId } = req.query;
 
@@ -86,8 +83,7 @@ router.get("/quiz-score", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/quizzes/attemts
-// Returns the number of users that have attempted the given quiz
+// GET /api/quizzes/attempts
 router.get("/attempts", requireAuth, async (req, res) => {
   const { quizId } = req.query;
 
@@ -130,7 +126,6 @@ router.get("/:quizId", requireAuth, async (req, res) => {
       description: quiz.description,
       currentQuestion: quizAttempt ? quizAttempt.questionsAnswered : 0,
       currentScore: quizAttempt ? quizAttempt.currentScore : 0,
-      // Map over questions to remove the correct answer before sending to the client
       questions: quiz.questions.map((q) => ({
         _id: q._id,
         title: q.title,
@@ -150,20 +145,19 @@ router.get("/:quizId", requireAuth, async (req, res) => {
 // POST /api/quizzes
 router.post("/", async (req, res) => {
   try {
-    const { title, description, courseId, questions } = req.body;
+    const { title, description, lessonId, questions } = req.body;
 
-    // Basic validation to ensure required fields are present
-    if (!title || !courseId || !questions) {
+    if (!title || !lessonId || !questions) {
       return res.status(400).json({
         message:
-          "Missing required fields: title, courseId, and questions are required.",
+          "Missing required fields: title, lessonId, and questions are required.",
       });
     }
 
     const newQuiz = new Quiz({
       title,
       description,
-      courseId,
+      lessonId,
       questions,
     });
 
@@ -183,7 +177,6 @@ router.put("/:quizId", async (req, res) => {
     const { quizId } = req.params;
     const { title, description, questions, deleteAttempts } = req.body;
 
-    // Basic validation
     if (!title || !questions) {
       return res.status(400).json({
         message: "Missing required fields: title and questions are required.",
@@ -215,11 +208,9 @@ router.put("/:quizId", async (req, res) => {
 });
 
 router.post("/submit-answer", requireAuth, async (req, res) => {
-  // We will need to add user data here and some validations to store progress and grades
   try {
     const { quizId, questionIndex, answer } = req.body;
 
-    // Basic validation to ensure required fields are present
     if (quizId === null || questionIndex === null || answer == null) {
       return res.status(400).json({
         message:
@@ -239,8 +230,8 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
         quizAttempt = new QuizAttempt({
           userId: req.user._id,
           quizId: quizId,
-          courseId: quiz.courseId,
-          completed: false, // Initial status
+          lessonId: quiz.lessonId, 
+          completed: false,
           questionsAnswered: 0,
           currentScore: 0,
           answers: [],
@@ -298,14 +289,10 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
   }
 });
 
-// TODO: REMOVE ON PROD
-// This is only for bulk attempt creation
 router.post("/no-auth-submit-answer", async (req, res) => {
-  // We will need to add user data here and some validations to store progress and grades
   try {
     const { quizId, userId, questionIndex, answer } = req.body;
 
-    // Basic validation to ensure required fields are present
     if (quizId === null || userId === null || questionIndex === null || answer == null) {
       return res.status(400).json({
         message:
@@ -325,8 +312,8 @@ router.post("/no-auth-submit-answer", async (req, res) => {
         quizAttempt = new QuizAttempt({
           userId: userId,
           quizId: quizId,
-          courseId: quiz.courseId,
-          completed: false, // Initial status
+          lessonId: quiz.lessonId, 
+          completed: false,
           questionsAnswered: 0,
           currentScore: 0,
           answers: [],
