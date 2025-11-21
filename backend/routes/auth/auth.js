@@ -116,14 +116,17 @@ router.get("/me", async (req, res) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    const user = await User.findById(decoded.sub).select("name email role");
+    const user = await User.findById(decoded.sub).select("name email role updatedAt");
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    console.log(user.updatedAt);
 
     res.json({
       id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
+      lastUpdate: user.updatedAt
     });
   } catch (e) {
     console.error("ME ERROR:", e);

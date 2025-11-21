@@ -16,6 +16,7 @@
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
+    lastPasswordUpdate: "",
   };
 
   // --- Info de cuenta (se arma con datos del backend) ---
@@ -48,6 +49,7 @@
 
       profile.name = me.name ?? "";
       profile.email = me.email ?? "";
+      profile.lastPasswordUpdate = me.lastUpdate ?? "";
       accountInfo = [
         { label: "Rol", value: me.role || "Usuario" },
         {

@@ -5,6 +5,14 @@
   export let profile;
   export let showPasswordForm = false;
   export let toggleForm = () => {};
+
+  $: daysSinceUpdate = profile?.lastPasswordUpdate
+    ? Math.floor(
+        (new Date().getTime() -
+          new Date(profile.lastPasswordUpdate).getTime()) /
+          (1000 * 60 * 60 * 24),
+      )
+    : 0;
 </script>
 
 <div class="profile-card">
@@ -14,7 +22,9 @@
 
   {#if !showPasswordForm}
     <div class="security-info">
-      <p>🔒 Tu contraseña se actualizó por última vez hace 30 días</p>
+      <p>
+        🔒 Tu contraseña se actualizó por última vez hace {daysSinceUpdate} días
+      </p>
       <button class="btn-primary" on:click={toggleForm}>
         Change Password
       </button>

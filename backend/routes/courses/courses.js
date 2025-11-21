@@ -50,6 +50,7 @@ router.get("/", requireAuth, async (req, res) => {
     ]);
 
     const studentCountMap = {};
+
     enrollmentsByCourse.forEach((e) => {
       studentCountMap[e._id.toString()] = e.count;
     });
