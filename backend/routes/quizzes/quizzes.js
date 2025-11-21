@@ -143,8 +143,7 @@ router.post("/", async (req, res) => {
 
     if (!title || !questions) {
       return res.status(400).json({
-        message:
-          "Missing required fields: title and questions are required.",
+        message: "Missing required fields: title and questions are required.",
       });
     }
 
@@ -169,7 +168,8 @@ router.post("/", async (req, res) => {
 router.put("/:quizId", async (req, res) => {
   try {
     const { quizId } = req.params;
-    const { title, description, questions, deleteAttempts, lessonId } = req.body;
+    const { title, description, questions, deleteAttempts, lessonId } =
+      req.body;
 
     if (!title || !questions) {
       return res.status(400).json({
@@ -251,7 +251,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-              JSON.stringify([...question.correctAnswer].sort());
+                JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
@@ -338,7 +338,7 @@ router.post("/no-auth-submit-answer", async (req, res) => {
             isCorrect =
               answer.length === question.correctAnswer.length &&
               JSON.stringify([...answer].sort()) ===
-              JSON.stringify([...question.correctAnswer].sort());
+                JSON.stringify([...question.correctAnswer].sort());
           }
         }
 
