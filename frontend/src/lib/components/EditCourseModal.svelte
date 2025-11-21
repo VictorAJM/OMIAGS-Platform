@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { scale, fade } from "svelte/transition";
+  import { onMount } from "svelte";
 
   export let course: any;
 
@@ -22,11 +23,25 @@
     category = course.category || "Secundaria";
 
     // Handle different data shapes (strings vs objects)
-    const rawStudents = course.students || course.accessList || [];
+    /*const rawStudents = course.students || course.accessList || [];
     students = rawStudents
       .map((s: any) => (typeof s === "string" ? s : s?.email))
-      .filter((s: any) => s);
+      .filter((s: any) => s);*/
   }
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+  async function loadStudentList() {
+    const res = await fetch(`${API_BASE}/api/courses/${course.id}`, {
+      credentials: "include",
+    });
+
+    const data = await res.json();
+    students = data.students;
+  }
+
+  onMount(async () => {
+    await loadStudentList();
+  });
 
   function addStudent() {
     const val = newStudentEmail.trim().toLowerCase(); // Normalize email
