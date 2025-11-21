@@ -29,7 +29,7 @@
                 body: JSON.stringify({
                     title,
                     description,
-                    lessonId,
+                    ...(lessonId ? { lessonId } : {}),
                     questions: [],
                 }),
             });
