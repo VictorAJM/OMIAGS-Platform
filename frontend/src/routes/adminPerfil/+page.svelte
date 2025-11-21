@@ -46,53 +46,19 @@
       username = me.name;
       viewerType = me.role || "student";
 
-      // Perfil detallado (nombre/email, fechas, métricas)
-      // Si tu backend expone GET /api/user/profile:
-      const profRes = await fetch(`${API_BASE}/api/user/profile`, {
-        credentials: "include",
-      });
-
-      // Si no existe la ruta anterior, usa los datos de /auth/me como fallback
-      if (profRes.ok) {
-        const p = await profRes.json();
-        profile.name = p.name ?? me.name ?? "";
-        profile.email = p.email ?? me.email ?? "";
-        const created = p.createdAt ?? me.createdAt;
-        const coursesCount = p.coursesCount ?? 0;
-        const studentsCount = p.studentsCount ?? 0;
-
-        accountInfo = [
-          { label: "Rol", value: me.role || "Usuario" },
-          {
-            label: "Fecha de registro",
-            value: created ? new Date(created).toLocaleDateString() : "—",
-          },
-          {
-            label: "Cursos activos",
-            value: coursesCount ? `${coursesCount} cursos` : "0 cursos",
-          },
-          {
-            label: "Estudiantes totales",
-            value: studentsCount
-              ? `${studentsCount} estudiantes`
-              : "0 estudiantes",
-          },
-        ];
-      } else {
-        profile.name = me.name ?? "";
-        profile.email = me.email ?? "";
-        accountInfo = [
-          { label: "Rol", value: me.role || "Usuario" },
-          {
-            label: "Fecha de registro",
-            value: me.createdAt
-              ? new Date(me.createdAt).toLocaleDateString()
-              : "—",
-          },
-          { label: "Cursos activos", value: "—" },
-          { label: "Estudiantes totales", value: "—" },
-        ];
-      }
+      profile.name = me.name ?? "";
+      profile.email = me.email ?? "";
+      accountInfo = [
+        { label: "Rol", value: me.role || "Usuario" },
+        {
+          label: "Fecha de registro",
+          value: me.createdAt
+            ? new Date(me.createdAt).toLocaleDateString()
+            : "—",
+        },
+        { label: "Cursos activos", value: "—" },
+        { label: "Estudiantes totales", value: "—" },
+      ];
     } catch (err) {
       console.error("Failed to fetch user data", err);
     }
