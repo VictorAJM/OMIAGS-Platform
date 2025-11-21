@@ -1,7 +1,6 @@
 <script lang="ts">
   import ProfileCard from "../../lib/components/AdminProfileCard.svelte";
   import SecurityCard from "../../lib/components/PasswordChangeCard.svelte";
-  import AccountInfoCard from "../../lib/components/AdminAccountInfoCard.svelte";
   import NavBar from "../../lib/components/NavBar.svelte";
   import { onMount } from "svelte";
 
@@ -161,8 +160,6 @@
       on:toggleEdit={toggleEdit}
       on:saveProfile={saveProfile}
     />
-
-    <AccountInfoCard info={accountInfo} />
 
     <!-- Pasamos funciones para que el componente pueda invocarlas -->
     <SecurityCard
