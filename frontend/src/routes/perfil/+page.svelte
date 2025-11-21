@@ -20,11 +20,11 @@
   export let showPasswordForm = false;
   let saveMessage = "";
 
-  // Utilidad para obtener token JWT de la cookie "session"
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   onMount(async () => {
     try {
-      const userRes = await fetch("http://localhost:5000/api/auth/me", {
+      const userRes = await fetch(`${API_BASE}/api/auth/me`, {
         credentials: "include",
       });
 
@@ -56,7 +56,7 @@
 
     try {
       // Obtener ID del usuario usando /api/auth/me
-      const me = await fetch("http://localhost:5000/api/auth/me", {
+      const me = await fetch(`${API_BASE}/api/auth/me`, {
         credentials: "include",
       });
 
@@ -65,7 +65,7 @@
 
       // Llamar endpoint real para cambiar contraseña
       const res = await fetch(
-        `http://localhost:5000/api/auth/change-password`,
+        `${API_BASE}/api/auth/change-password`,
         {
           method: "PUT",
           credentials: "include",

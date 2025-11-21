@@ -24,7 +24,7 @@
   let userId = null;
   let viewerType = "student";
 
-  const API_BASE = "http://localhost:5000";
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   async function loadUser() {
     const res = await fetch(`${API_BASE}/api/auth/me`, {

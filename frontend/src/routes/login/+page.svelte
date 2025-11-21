@@ -6,13 +6,15 @@
   let msg = "";
   let loading = false;
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   async function handleLogin(e: Event) {
     e.preventDefault();
     msg = "";
     loading = true;
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

@@ -11,13 +11,15 @@
   let showModal = false;
   let isLoading = true;
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   onMount(async () => {
     await fetchUserData();
   });
 
   const fetchUserData = async () => {
     try {
-      const userRes = await fetch("http://localhost:5000/api/auth/me", {
+      const userRes = await fetch(`${API_BASE}/api/auth/me`, {
         credentials: "include",
       });
 
@@ -50,7 +52,7 @@
 
   const confirmLogout = async () => {
     try {
-      await fetch("http://localhost:5000/api/auth/logout", {
+      await fetch(`${API_BASE}/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       });

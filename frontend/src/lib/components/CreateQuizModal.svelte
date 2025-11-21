@@ -11,6 +11,8 @@
     let loading = false;
     let error = "";
 
+    const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
     async function handleCreate() {
         if (!title.trim()) {
             error = "El título es obligatorio";
@@ -21,7 +23,7 @@
         error = "";
 
         try {
-            const res = await fetch("http://localhost:5000/api/quizzes", {
+            const res = await fetch(`${API_BASE}/api/quizzes`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

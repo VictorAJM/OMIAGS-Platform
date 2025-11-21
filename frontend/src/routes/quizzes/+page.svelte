@@ -5,9 +5,11 @@
   let quizzes = [];
   let loading = true;
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   onMount(async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/quizzes/list`, {
+      const res = await fetch(`${API_BASE}/api/quizzes/list`, {
         credentials: "include",
       });
       if (!res.ok) {

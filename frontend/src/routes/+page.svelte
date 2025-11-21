@@ -3,11 +3,12 @@
 
   let username = "";
   let viewerType = "student";
-  let isLoading = true;
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   onMount(async () => {
     try {
-      const userRes = await fetch("http://localhost:5000/api/auth/me", {
+      const userRes = await fetch(`${API_BASE}/api/auth/me`, {
         credentials: "include",
       });
 

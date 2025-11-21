@@ -8,13 +8,15 @@
   let loading = false;
   let error = '';
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   async function handleDelete() {
     loading = true;
     error = '';
 
     try {
       // Endpoint DELETE /api/lessons/:id
-      const res = await fetch(`http://localhost:5000/api/lessons/${lesson._id || lesson.id}`, {
+      const res = await fetch(`${API_BASE}/api/lessons/${lesson._id || lesson.id}`, {
         method: 'DELETE'
       });
 

@@ -12,7 +12,7 @@
   // Si necesitas el usuario en este componente simple:
   let username = ''; 
 
-  const API_BASE = 'http://localhost:5000';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   function getYouTubeEmbedUrl(url) {
     if (!url) return null;

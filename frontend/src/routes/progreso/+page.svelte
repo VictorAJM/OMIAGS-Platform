@@ -35,9 +35,11 @@
   let currentGradesPage = 1;
   const itemsPerPage = 5;
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   onMount(async () => {
     try {
-      const userRes = await fetch("http://localhost:5000/api/auth/me", {
+      const userRes = await fetch(`${API_BASE}/api/auth/me`, {
         credentials: "include",
       });
       if (userRes.ok) {
@@ -46,7 +48,7 @@
         viewerType = userData.role;
       }
 
-      const coursesRes = await fetch("http://localhost:5000/api/courses", {
+      const coursesRes = await fetch(`${API_BASE}/api/courses`, {
         credentials: "include",
       });
       if (!coursesRes.ok) throw new Error("Error al obtener cursos");
@@ -55,7 +57,7 @@
       const detailedCourses = await Promise.all(
         coursesData.map(async (course: any) => {
           const lessonsRes = await fetch(
-            `http://localhost:5000/api/courses/${course.id}/lessons`,
+            `${API_BASE}/api/courses/${course.id}/lessons`,
             { credentials: "include" }
           );
           const lessonsData = await lessonsRes.json();
@@ -63,7 +65,7 @@
           const gradesPromises = lessonsData.map(async (lesson: any) => {
             try {
               const quizRes = await fetch(
-                `http://localhost:5000/api/quizzes?lessonId=${lesson._id}`,
+                `${API_BASE}/api/quizzes?lessonId=${lesson._id}`,
                 { credentials: "include" }
               );
               
@@ -74,7 +76,7 @@
                 const quiz = quizzes[0]; 
                 
                 const scoreRes = await fetch(
-                  `http://localhost:5000/api/quizzes/quiz-score?quizId=${quiz._id}`,
+                  `${API_BASE}/api/quizzes/quiz-score?quizId=${quiz._id}`,
                   { credentials: "include" }
                 );
                 

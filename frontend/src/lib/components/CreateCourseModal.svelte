@@ -16,6 +16,8 @@
   let students: string[] = [];
   let newStudentEmail = "";
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   function addStudent() {
     const val = newStudentEmail.trim().toLowerCase();
     if (!val) return;
@@ -53,7 +55,7 @@
     msg = "";
 
     try {
-      const res = await fetch("http://localhost:5000/api/courses", {
+      const res = await fetch(`${API_BASE}/api/courses`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -82,7 +84,7 @@
 
     // Existing logic from your code (Enrollment debug/fetch)
     try {
-      const res = await fetch("http://localhost:5000/api/enrollments/all", {
+      const res = await fetch(`${API_BASE}/api/enrollments/all`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

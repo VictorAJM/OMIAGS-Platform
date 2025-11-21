@@ -25,13 +25,15 @@
   let showPasswordForm = false;
   let saveMessage = "";
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   // Utilidad para obtener token JWT de la cookie "session"
 
   // Cargar usuario y poblar tarjetas
   onMount(async () => {
     try {
       // Datos mínimos de sesión/rol
-      const meRes = await fetch("http://localhost:5000/api/auth/me", {
+      const meRes = await fetch(`${API_BASE}/api/auth/me`, {
         credentials: "include",
       });
 
@@ -46,7 +48,7 @@
 
       // Perfil detallado (nombre/email, fechas, métricas)
       // Si tu backend expone GET /api/user/profile:
-      const profRes = await fetch("http://localhost:5000/api/user/profile", {
+      const profRes = await fetch(`${API_BASE}/api/user/profile`, {
         credentials: "include",
       });
 
@@ -99,7 +101,7 @@
   // Guardar nombre/email
   async function saveProfile() {
     try {
-      const res = await fetch("http://localhost:5000/api/user/profile", {
+      const res = await fetch(`${API_BASE}/api/user/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -132,7 +134,7 @@
 
     try {
       // Obtener ID del usuario usando /api/auth/me
-      const me = await fetch("http://localhost:5000/api/auth/me", {
+      const me = await fetch(`${API_BASE}/api/auth/me`, {
         credentials: "include",
       });
 
@@ -141,7 +143,7 @@
 
       // Llamar endpoint real para cambiar contraseña
       const res = await fetch(
-        `http://localhost:5000/api/auth/change-password`,
+        `${API_BASE}/api/auth/change-password`,
         {
           method: "PUT",
           headers: {

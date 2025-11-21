@@ -17,6 +17,8 @@
   let lessonToEdit: any = null;
   let lessonToDelete: any = null;
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   function handleLessonCreated() {
     showCreateModal = false;
     fetchLessons();
@@ -47,7 +49,7 @@
     error = "";
     try {
       const res = await fetch(
-        `http://localhost:5000/api/lessons/${courseId}/lessons`,
+        `${API_BASE}/api/lessons/${courseId}/lessons`,
       );
 
       if (!res.ok) throw new Error("Error al cargar lecciones");

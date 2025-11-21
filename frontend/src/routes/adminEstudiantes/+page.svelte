@@ -25,10 +25,12 @@
   let sortBy: SortOption = "name";
   let sortDirection: "asc" | "desc" = "asc";
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   onMount(async () => {
     try {
       // 1. Auth
-      const userRes = await fetch("http://localhost:5000/api/auth/me", { credentials: "include" });
+      const userRes = await fetch(`${API_BASE}/api/auth/me`, { credentials: "include" });
       if (userRes.ok) {
         const userData = await userRes.json();
         username = userData.name;
@@ -39,7 +41,7 @@
 
       // 2. Fetch Students directly from the new API endpoint
       // This endpoint (/my-students) now handles all the deep fetching and aggregation on the server
-      const studentsRes = await fetch("http://localhost:5000/api/enrollments/my-students", { credentials: "include" });
+      const studentsRes = await fetch(`${API_BASE}/api/enrollments/my-students`, { credentials: "include" });
       
       if (studentsRes.ok) {
         students = await studentsRes.json();

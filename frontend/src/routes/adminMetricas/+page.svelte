@@ -19,9 +19,11 @@
   let viewerType = "student";
   let loading = true;
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   onMount(async () => {
     try {
-      const userRes = await fetch("http://localhost:5000/api/auth/me", {
+      const userRes = await fetch(`${API_BASE}/api/auth/me`, {
         credentials: "include",
       });
       if (!userRes.ok) throw new Error("Auth Error");
@@ -29,14 +31,14 @@
       username = userData.name;
       viewerType = userData.role;
 
-      const coursesRes = await fetch("http://localhost:5000/api/courses", {
+      const coursesRes = await fetch(`${API_BASE}/api/courses`, {
         credentials: "include",
       });
       const myCourses = await coursesRes.json();
       const myCourseIds = new Set(myCourses.map((c: any) => c.id));
 
       const enrollmentsRes = await fetch(
-        "http://localhost:5000/api/enrollments/all",
+        `${API_BASE}/api/enrollments/all`,
         { credentials: "include" },
       );
       const allEnrollments = await enrollmentsRes.json();

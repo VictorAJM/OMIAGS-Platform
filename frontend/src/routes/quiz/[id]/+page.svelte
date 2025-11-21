@@ -19,6 +19,8 @@
   let correctAnswers = 0;
   let finalScore = 0;
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   // --- Reactive Derived State ---
   $: quizId = $page.params.id;
   $: currentQuestion = quizData
@@ -43,7 +45,7 @@
 
   onMount(async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/quizzes/${quizId}`, {
+      const res = await fetch(`${API_BASE}/api/quizzes/${quizId}`, {
         credentials: "include",
       });
       if (!res.ok) {
@@ -102,7 +104,7 @@
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/quizzes/submit-answer",
+        `${API_BASE}/api/quizzes/submit-answer`,
         {
           method: "POST",
           headers: {
@@ -139,7 +141,7 @@
   async function fetchFinalScore() {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/quizzes/quiz-score?quizId=${quizId}`,
+        `${API_BASE}/api/quizzes/quiz-score?quizId=${quizId}`,
         {
           credentials: "include",
         },

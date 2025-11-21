@@ -14,6 +14,8 @@
   // Track uploading state per item to show spinners individually
   let uploadingIndex: number | null = null;
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   interface ContentFormItem {
     type: 'video' | 'pdf' | 'text' | 'quiz';
     title: string;
@@ -46,7 +48,7 @@
     formData.append('file', file);
 
     try {
-      const res = await fetch('http://localhost:5000/api/upload', {
+      const res = await fetch(`${API_BASE}/api/upload`, {
         method: 'POST',
         body: formData
       });
@@ -97,7 +99,7 @@
         return { ...base, url: c.url }; // video o pdf
       });
 
-      const res = await fetch('http://localhost:5000/api/lessons', {
+      const res = await fetch(`${API_BASE}/api/lessons`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

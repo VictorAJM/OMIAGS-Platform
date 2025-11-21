@@ -38,6 +38,8 @@
     quizId: c.quizId || "",
   }));
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   function addContent() {
     contents = [
       ...contents,
@@ -62,7 +64,7 @@
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:5000/api/upload", {
+      const res = await fetch(`${API_BASE}/api/upload`, {
         method: "POST",
         body: formData,
       });
@@ -139,7 +141,7 @@
       });
 
       const res = await fetch(
-        `http://localhost:5000/api/lessons/${lesson._id || lesson.id}`,
+        `${API_BASE}/api/lessons/${lesson._id || lesson.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

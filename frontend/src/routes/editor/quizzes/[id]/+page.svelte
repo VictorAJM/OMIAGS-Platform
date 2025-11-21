@@ -31,6 +31,8 @@
    */
   let editorCardElement;
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   onMount(async () => {
     await fetchQuiz();
   });
@@ -38,7 +40,7 @@
   async function fetchQuiz() {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/quizzes/${$page.params.id}`,
+        `${API_BASE}/api/quizzes/${$page.params.id}`,
         {
           credentials: "include",
         },
@@ -196,7 +198,7 @@
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/quizzes/attempts?quizId=${$page.params.id}`,
+        `${API_BASE}/api/quizzes/attempts?quizId=${$page.params.id}`,
         {
           credentials: "include",
         },
@@ -314,7 +316,7 @@
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/quizzes/${$page.params.id}`,
+        `${API_BASE}/api/quizzes/${$page.params.id}`,
         {
           method: "PUT",
           headers: {
