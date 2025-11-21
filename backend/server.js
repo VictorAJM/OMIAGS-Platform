@@ -25,10 +25,7 @@ const __dirname = path.dirname(__filename);
 // Middleware
 app.use(
   cors({
-    origin: [
-      "https://omiags.online",
-      "https://www.omiags.online",
-    ],
+    origin: ["https://omiags.online", "https://www.omiags.online"],
     credentials: true,
   }),
 );
