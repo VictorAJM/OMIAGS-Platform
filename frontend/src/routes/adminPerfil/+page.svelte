@@ -142,20 +142,17 @@
       const user = await me.json();
 
       // Llamar endpoint real para cambiar contraseña
-      const res = await fetch(
-        `${API_BASE}/api/auth/change-password`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            oldPassword: profile.currentPassword,
-            newPassword: profile.newPassword,
-          }),
+      const res = await fetch(`${API_BASE}/api/auth/change-password`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          oldPassword: profile.currentPassword,
+          newPassword: profile.newPassword,
+        }),
+      });
 
       if (!res.ok) throw new Error(await res.text());
 

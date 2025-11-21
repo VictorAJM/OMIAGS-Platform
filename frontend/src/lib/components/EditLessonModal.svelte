@@ -47,8 +47,8 @@
     ];
     // Scroll to bottom after adding (optional UX enhancement)
     setTimeout(() => {
-      const list = document.querySelector('.contents-list');
-      if(list) list.scrollTop = list.scrollHeight;
+      const list = document.querySelector(".contents-list");
+      if (list) list.scrollTop = list.scrollHeight;
     }, 50);
   }
 
@@ -178,14 +178,21 @@
   on:click={() => dispatch("close")}
   transition:fade={{ duration: 200 }}
 >
-  <div class="modal" on:click|stopPropagation in:scale={{ start: 0.96, duration: 200 }}>
-    
+  <div
+    class="modal"
+    on:click|stopPropagation
+    in:scale={{ start: 0.96, duration: 200 }}
+  >
     <div class="modal-header">
       <div class="header-content">
         <h3 class="modal-title">Editar Lección</h3>
-        <p class="modal-subtitle">Organiza y actualiza el contenido de tu clase.</p>
+        <p class="modal-subtitle">
+          Organiza y actualiza el contenido de tu clase.
+        </p>
       </div>
-      <button type="button" class="btn-close" on:click={() => dispatch("close")}>✕</button>
+      <button type="button" class="btn-close" on:click={() => dispatch("close")}
+        >✕</button
+      >
     </div>
 
     <div class="modal-body-scroll">
@@ -200,20 +207,22 @@
         <div class="main-fields">
           <div class="form-group">
             <label for="title">Título de la lección</label>
-            <input 
-              id="title" 
-              type="text" 
-              bind:value={title} 
+            <input
+              id="title"
+              type="text"
+              bind:value={title}
               placeholder="Ej. Introducción a la Química"
-              required 
+              required
             />
           </div>
 
           <div class="form-group">
-            <label for="desc">Descripción <span class="optional">(Opcional)</span></label>
-            <textarea 
-              id="desc" 
-              rows="2" 
+            <label for="desc"
+              >Descripción <span class="optional">(Opcional)</span></label
+            >
+            <textarea
+              id="desc"
+              rows="2"
               bind:value={description}
               placeholder="Breve resumen de lo que aprenderá el alumno..."
             ></textarea>
@@ -235,21 +244,28 @@
             <div class="empty-state">
               <div class="empty-icon">📂</div>
               <p>Aún no has agregado materiales.</p>
-              <button type="button" class="btn-link" on:click={addContent}>Agregar el primero</button>
+              <button type="button" class="btn-link" on:click={addContent}
+                >Agregar el primero</button
+              >
             </div>
           {:else}
             <div class="contents-list">
               {#each contents as content, i}
-                <div class="content-card" transition:scale|local={{duration: 200}}>
-                  
+                <div
+                  class="content-card"
+                  transition:scale|local={{ duration: 200 }}
+                >
                   <div class="card-header">
                     <div class="type-badge-wrapper">
-                        <select bind:value={content.type} class="type-select type-{content.type}">
+                      <select
+                        bind:value={content.type}
+                        class="type-select type-{content.type}"
+                      >
                         <option value="text">📝 Texto</option>
                         <option value="video">🎥 Video</option>
                         <option value="pdf">📄 PDF</option>
                         <option value="quiz">❓ Quiz</option>
-                        </select>
+                      </select>
                     </div>
                     <button
                       type="button"
@@ -279,7 +295,6 @@
                           class="text-content-area"
                           required
                         ></textarea>
-
                       {:else if content.type === "quiz"}
                         {#if content.quizId}
                           <div class="quiz-linked-card">
@@ -290,13 +305,21 @@
                                 <span class="id">{content.quizId}</span>
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              class="btn-unlink"
-                              on:click={() => (content.quizId = "")}
-                            >
-                              Desvincular
-                            </button>
+                            <div class="quiz-actions">
+                              <a
+                                href="/editor/quizzes/{content.quizId}"
+                                class="btn-edit-quiz"
+                              >
+                                ✏️ Editar
+                              </a>
+                              <button
+                                type="button"
+                                class="btn-unlink"
+                                on:click={() => (content.quizId = "")}
+                              >
+                                Desvincular
+                              </button>
+                            </div>
                           </div>
                         {:else}
                           <div class="quiz-setup-area">
@@ -307,25 +330,21 @@
                             >
                               ✨ Crear Nuevo Quiz
                             </button>
-                            <div class="divider-text">o vincula uno existente</div>
-                            <div class="input-with-icon">
-                                <span class="input-icon">#</span>
-                                <input
-                                type="text"
-                                bind:value={content.quizId}
-                                placeholder="Pegar ID de Quiz existente"
-                                />
-                            </div>
                           </div>
                         {/if}
-
                       {:else if content.type === "pdf"}
                         {#if content.url}
                           <div class="file-preview-card">
                             <div class="file-icon">📄</div>
                             <div class="file-info">
-                              <span class="file-name">{content.title || "Documento PDF"}</span>
-                              <a href={content.url} target="_blank" class="file-link">Ver archivo</a>
+                              <span class="file-name"
+                                >{content.title || "Documento PDF"}</span
+                              >
+                              <a
+                                href={content.url}
+                                target="_blank"
+                                class="file-link">Ver archivo</a
+                              >
                             </div>
                             <button
                               type="button"
@@ -341,20 +360,20 @@
                               accept="application/pdf"
                               label="Sube o arrastra tu PDF aquí"
                               uploading={uploadingIndex === i}
-                              on:fileDropped={(e) => handleFileUpload(e.detail, i)}
+                              on:fileDropped={(e) =>
+                                handleFileUpload(e.detail, i)}
                             />
                           </div>
                         {/if}
-
                       {:else}
                         <div class="input-with-icon">
-                            <span class="input-icon">🔗</span>
-                            <input
+                          <span class="input-icon">🔗</span>
+                          <input
                             type="url"
                             bind:value={content.url}
                             placeholder="https://youtube.com/..."
                             required
-                            />
+                          />
                         </div>
                       {/if}
                     </div>
@@ -382,9 +401,9 @@
         on:click={() => handleUpdate(true)}
       >
         {#if loading}
-            <span class="loader"></span> Guardando...
+          <span class="loader"></span> Guardando...
         {:else}
-            Guardar Cambios
+          Guardar Cambios
         {/if}
       </button>
     </div>
@@ -419,7 +438,9 @@
     width: 100%;
     max-width: 600px;
     height: 85vh; /* Fixed height for scroll behavior */
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -479,7 +500,7 @@
     padding: 1.5rem;
     background: #f8fafc; /* Light gray background for contrast with cards */
   }
-  
+
   /* Scrollbar polish */
   .modal-body-scroll::-webkit-scrollbar {
     width: 6px;
@@ -508,7 +529,9 @@
     font-size: 0.8rem;
   }
 
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     width: 100%;
     padding: 0.625rem 0.875rem;
     border: 1px solid #e2e8f0;
@@ -520,7 +543,9 @@
     box-sizing: border-box;
   }
 
-  input:focus, textarea:focus, select:focus {
+  input:focus,
+  textarea:focus,
+  select:focus {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
@@ -621,12 +646,16 @@
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     overflow: hidden;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition:
+      transform 0.2s,
+      box-shadow 0.2s;
   }
   .content-card:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.05),
+      0 2px 4px -1px rgba(0, 0, 0, 0.03);
     transform: translateY(-1px);
   }
 
@@ -650,10 +679,26 @@
     background-color: #fff;
   }
   /* Contextual colors for select */
-  .type-quiz { color: #059669; border-color: #a7f3d0; background: #ecfdf5; }
-  .type-video { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
-  .type-pdf { color: #ca8a04; border-color: #fde047; background: #fefce8; }
-  .type-text { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+  .type-quiz {
+    color: #059669;
+    border-color: #a7f3d0;
+    background: #ecfdf5;
+  }
+  .type-video {
+    color: #b91c1c;
+    border-color: #fecaca;
+    background: #fef2f2;
+  }
+  .type-pdf {
+    color: #ca8a04;
+    border-color: #fde047;
+    background: #fefce8;
+  }
+  .type-text {
+    color: #2563eb;
+    border-color: #bfdbfe;
+    background: #eff6ff;
+  }
 
   .btn-icon-delete {
     background: transparent;
@@ -692,7 +737,7 @@
   }
 
   /* --- Type Specific UI --- */
-  
+
   /* Input Icons Wrapper */
   .input-with-icon {
     position: relative;
@@ -719,7 +764,7 @@
     flex-direction: column;
     gap: 0.75rem;
   }
-  
+
   .btn-create-quiz {
     width: 100%;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -732,7 +777,9 @@
     box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
     transition: transform 0.1s;
   }
-  .btn-create-quiz:active { transform: translateY(1px); }
+  .btn-create-quiz:active {
+    transform: translateY(1px);
+  }
 
   .divider-text {
     text-align: center;
@@ -760,9 +807,17 @@
     display: flex;
     flex-direction: column;
   }
-  .quiz-details .label { font-size: 0.75rem; font-weight: 700; color: #065f46; }
-  .quiz-details .id { font-size: 0.7rem; font-family: monospace; color: #047857; }
-  
+  .quiz-details .label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #065f46;
+  }
+  .quiz-details .id {
+    font-size: 0.7rem;
+    font-family: monospace;
+    color: #047857;
+  }
+
   .btn-unlink {
     font-size: 0.75rem;
     color: #ef4444;
@@ -770,6 +825,27 @@
     border: none;
     text-decoration: underline;
     cursor: pointer;
+  }
+
+  .quiz-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .btn-edit-quiz {
+    font-size: 0.75rem;
+    color: #059669;
+    background: #d1fae5;
+    border: 1px solid #34d399;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .btn-edit-quiz:hover {
+    background: #a7f3d0;
   }
 
   /* File/PDF Specific */
@@ -782,11 +858,27 @@
     border-radius: 8px;
     gap: 0.75rem;
   }
-  .file-icon { font-size: 1.25rem; }
-  .file-info { flex: 1; display: flex; flex-direction: column; }
-  .file-name { font-size: 0.85rem; font-weight: 600; color: #1e3a8a; }
-  .file-link { font-size: 0.75rem; color: #3b82f6; text-decoration: none; }
-  .file-link:hover { text-decoration: underline; }
+  .file-icon {
+    font-size: 1.25rem;
+  }
+  .file-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .file-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1e3a8a;
+  }
+  .file-link {
+    font-size: 0.75rem;
+    color: #3b82f6;
+    text-decoration: none;
+  }
+  .file-link:hover {
+    text-decoration: underline;
+  }
 
   .btn-change-file {
     font-size: 0.75rem;
@@ -836,18 +928,28 @@
     align-items: center;
     gap: 0.5rem;
   }
-  .btn-primary:hover { background: #1d4ed8; }
-  .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+  .btn-primary:hover {
+    background: #1d4ed8;
+  }
+  .btn-primary:disabled {
+    background: #93c5fd;
+    cursor: not-allowed;
+  }
 
   .loader {
-    width: 14px; height: 14px;
+    width: 14px;
+    height: 14px;
     border: 2px solid #fff;
     border-bottom-color: transparent;
     border-radius: 50%;
     animation: rotation 1s linear infinite;
   }
   @keyframes rotation {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 </style>
