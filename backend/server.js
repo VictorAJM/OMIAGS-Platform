@@ -26,9 +26,8 @@ const __dirname = path.dirname(__filename);
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
+      "https://omiags.online",
+      "https://www.omiags.online",
     ],
     credentials: true,
   }),
