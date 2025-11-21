@@ -49,7 +49,7 @@ router.post("/", upload.single("file"), (req, res) => {
     // Return the full URL so the frontend can save it to MongoDB
     // Note: ensure PORT matches your env or default 5000
     const port = process.env.PORT || 5000;
-    const fileUrl = `http://localhost:${port}/uploads/${req.file.filename}`;
+    const fileUrl = `https://www.omiags.online/uploads/${req.file.filename}`;
 
     res.status(200).json({ url: fileUrl });
   } catch (error) {
