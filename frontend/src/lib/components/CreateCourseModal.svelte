@@ -135,7 +135,6 @@
                         <select id="category" bind:value={category}>
                             <option value="Secundaria">🏫 Secundaria</option>
                             <option value="Preparatoria">🎓 Preparatoria</option>
-                            <option value="Universidad">🏛️ Universidad</option>
                         </select>
                     </div>
                 </div>
