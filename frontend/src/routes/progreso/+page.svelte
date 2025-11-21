@@ -9,6 +9,7 @@
     quizId: string;
     quiz: string;
     score: number;
+    isCompleted: boolean;
     date: string;
     courseTitle: string;
     courseId: string;
@@ -87,6 +88,7 @@
                   quizId: quiz._id,
                   quiz: quiz.title,
                   score: typeof scoreData.score === 'number' ? scoreData.score : 0,
+                  isCompleted: scoreData.status !== "Not attempted" ? true : false, 
                   date: new Date().toISOString(),
                   courseTitle: course.name,
                   courseId: course.id,
@@ -158,13 +160,16 @@
       .flatMap(c => c.recentGrades)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  $: completedGrades = allRecentGrades.filter(grade => grade.isCompleted);
+
   $: paginatedRecentGrades = (() => {
     const start = (currentGradesPage - 1) * itemsPerPage;
-    return allRecentGrades.slice(start, start + itemsPerPage);
+    return completedGrades.slice(start, start + itemsPerPage);
   })();
 
   $: totalRecentGrades = allRecentGrades.length;
-  $: totalGradesPages = Math.ceil(totalRecentGrades / itemsPerPage) || 1;
+  $: totalCompletedGrades = completedGrades.length;
+  $: totalGradesPages = Math.ceil(totalCompletedGrades / itemsPerPage) || 1;
 
   function handlePendingPageChange(page: number) { currentPendingPage = page; }
   function handleGradesPageChange(page: number) { currentGradesPage = page; }
@@ -268,53 +273,53 @@
     </StatsCard>
 
     <StatsCard title="Historial de Calificaciones">
-      <div class="stats-content">
-        <div class="grades-list">
-          {#each paginatedRecentGrades as grade}
-            <div class="grade-item">
-              <div class="grade-info">
-                <span class="quiz-name">{grade.quiz}</span>
-                <span class="course-name">{grade.courseTitle}</span>
-              </div>
-              
-              <div class="grade-score {
-                  grade.score >= 90 ? 'excellent-score' : 
-                  grade.score >= 80 ? 'high-score' : 
-                  grade.score >= 70 ? 'medium-score' : 'low-score'
-                }">
-                {grade.score}%
-              </div>
-              
-              <button
-                class="review-btn"
-                on:click={() => continueLesson(grade.courseId, grade.lessonId)}
-              >
-                Ver Quiz
-              </button>
+        <div class="stats-content">
+            <div class="grades-list">
+                {#each paginatedRecentGrades as grade}
+                    <div class="grade-item">
+                        <div class="grade-info">
+                            <span class="quiz-name">{grade.quiz}</span>
+                            <span class="course-name">{grade.courseTitle}</span>
+                        </div>
+                        
+                        <div class="grade-score {
+                            grade.score >= 90 ? 'excellent-score' : 
+                            grade.score >= 80 ? 'high-score' : 
+                            grade.score >= 70 ? 'medium-score' : 'low-score'
+                        }">
+                            {grade.score}%
+                        </div>
+                        
+                        <button
+                            class="review-btn"
+                            on:click={() => continueLesson(grade.courseId, grade.lessonId)}
+                        >
+                            Ver Quiz
+                        </button>
 
+                    </div>
+                {:else}
+                    <div class="no-items">
+                        <div class="no-items-icon">📊</div>
+                        <p>Sin calificaciones aún</p>
+                        <small>Completa lecciones y quizzes para ver tu historial</small>
+                    </div>
+                {/each}
             </div>
-          {:else}
-            <div class="no-items">
-              <div class="no-items-icon">📊</div>
-              <p>Sin calificaciones aún</p>
-              <small>Completa lecciones y quizzes para ver tu historial</small>
-            </div>
-          {/each}
+
+            {#if totalGradesPages > 1}
+                <div class="pagination-info">
+                    <span class="pagination-text">
+                        Página {currentGradesPage} de {totalGradesPages}
+                    </span>
+                    <Pagination
+                        currentPage={currentGradesPage}
+                        totalPages={totalGradesPages}
+                        onPageChange={handleGradesPageChange}
+                    />
+                </div>
+            {/if}
         </div>
-
-        {#if totalGradesPages > 1}
-          <div class="pagination-info">
-            <span class="pagination-text">
-              Página {currentGradesPage} de {totalGradesPages}
-            </span>
-            <Pagination
-              currentPage={currentGradesPage}
-              totalPages={totalGradesPages}
-              onPageChange={handleGradesPageChange}
-            />
-          </div>
-        {/if}
-      </div>
     </StatsCard>
   </div>
 </div>
