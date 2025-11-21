@@ -116,7 +116,9 @@ router.get("/me", async (req, res) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    const user = await User.findById(decoded.sub).select("name email role updatedAt");
+    const user = await User.findById(decoded.sub).select(
+      "name email role updatedAt",
+    );
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
     console.log(user.updatedAt);
@@ -126,7 +128,7 @@ router.get("/me", async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      lastUpdate: user.updatedAt
+      lastUpdate: user.updatedAt,
     });
   } catch (e) {
     console.error("ME ERROR:", e);
