@@ -165,6 +165,33 @@ router.post("/", async (req, res) => {
   }
 });
 
+// PATCH /api/quizzes/:quizId
+router.patch("/:quizId", async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { title, description, questions, lessonId } = req.body;
+
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ message: "Quiz not found" });
+    }
+
+    if (title) quiz.title = title;
+    if (description) quiz.description = description;
+    if (questions) quiz.questions = questions;
+    if (lessonId) quiz.lessonId = lessonId;
+
+    const updatedQuiz = await quiz.save();
+
+    return res.json(updatedQuiz);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Server error while updating quiz." });
+  }
+});
+
 // PUT /api/quizzes/:quizId
 router.put("/:quizId", async (req, res) => {
   try {
@@ -224,6 +251,15 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
       });
 
       if (!quizAttempt) {
+        console.log({
+          userId: req.user._id,
+          quizId: quizId,
+          lessonId: quiz.lessonId,
+          completed: false,
+          questionsAnswered: 0,
+          currentScore: 0,
+          answers: [],
+        });
         quizAttempt = new QuizAttempt({
           userId: req.user._id,
           quizId: quizId,
@@ -282,7 +318,7 @@ router.post("/submit-answer", requireAuth, async (req, res) => {
     console.error(err);
     return res
       .status(500)
-      .json({ message: "Server error while creating quiz." });
+      .json({ message: "Server error while submitting answer." });
   }
 });
 

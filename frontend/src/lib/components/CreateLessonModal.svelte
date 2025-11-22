@@ -141,23 +141,15 @@
       for (const c of contents) {
         if (c.type === "quiz" && c.quizId) {
           try {
-            // First fetch the current quiz data to get questions, title, etc.
-            // We need to send everything back in the PUT request because it's a full update
-            const quizRes = await fetch(`${API_BASE}/api/quizzes/${c.quizId}`);
-            if (quizRes.ok) {
-              const quizData = await quizRes.json();
-
-              await fetch(`${API_BASE}/api/quizzes/${c.quizId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  title: quizData.title,
-                  description: quizData.description,
-                  questions: quizData.questions,
-                  lessonId: newLesson._id,
-                }),
-              });
-            }
+            // Update the quiz with the new lessonId using PATCH
+            // This avoids fetching and re-sending the entire quiz object, which can cause data loss
+            await fetch(`${API_BASE}/api/quizzes/${c.quizId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                lessonId: newLesson._id,
+              }),
+            });
           } catch (err) {
             console.error(`Failed to link quiz ${c.quizId} to lesson`, err);
           }
