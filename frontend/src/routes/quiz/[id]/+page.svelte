@@ -103,17 +103,14 @@
     };
 
     try {
-      const response = await fetch(
-        `${API_BASE}/api/quizzes/submit-answer`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(answerPayload),
+      const response = await fetch(`${API_BASE}/api/quizzes/submit-answer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        credentials: "include",
+        body: JSON.stringify(answerPayload),
+      });
 
       if (response.ok) {
         const responseData = await response.json();
@@ -171,6 +168,12 @@
 <NavBar viewerType="student" username="Chaska" />
 
 <div class="quiz-page-container">
+  <div class="nav-header">
+    <button class="back-btn" on:click={() => window.history.back()}>
+      ← Volver
+    </button>
+  </div>
+
   {#if loading}
     <p>Loading Quiz...</p>
   {:else if error}
@@ -380,6 +383,31 @@
     flex-direction: column;
     gap: 1.5rem;
     align-items: center; /* Added to center items horizontally */
+  }
+
+  .nav-header {
+    width: 100%;
+    max-width: 640px;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s;
+  }
+  .back-btn:hover {
+    color: #1e293b;
+    text-decoration: underline;
   }
 
   .error-message {
