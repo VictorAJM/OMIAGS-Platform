@@ -103,12 +103,71 @@ Pre-conditions: Admin users must own courses that have enrolled students with qu
 
 ---
 
+## Scenario 4: PDF Upload & Reading
+
+**Business justification:** PDFs are the largest payloads in the system — the upload endpoint accepts files up to 500 MB, and every student in a course will download the same file. This creates a dual stress: write-heavy disk I/O + memory pressure during upload (multer buffers to disk), and read-heavy bandwidth + static-file serving under concurrent downloads. A single popular lesson PDF can saturate the server's network or disk throughput, making this the most data-intensive flow to validate.
+
+**Transaction breakdown (VuGen):**
+
+**Part A — Admin uploads a PDF and attaches it to a lesson**
+
+| # | Transaction Name | Method | Endpoint | Correlation needed |
+|---|---|---|---|---|
+| 1 | `T01_Login_Admin` | POST | `/api/auth/login` | Extract `token` cookie |
+| 2 | `T02_GetMe` | GET | `/api/auth/me` | Validate `role == "admin"` |
+| 3 | `T03_UploadPDF` | POST | `/api/upload` | Multipart form-data, field name `file`; extract `url` from response |
+| 4 | `T04_GetAdminCourses` | GET | `/api/courses` | Extract first `courseId` |
+| 5 | `T05_GetCourseLessons` | GET | `/api/courses/{courseId}/lessons` | Extract first `lessonId` |
+| 6 | `T06_UpdateLesson` | PUT | `/api/lessons/{lessonId}` | Correlate `lessonId` from T05; body adds a new pdf content item using `url` from T03 |
+
+**Part B — Student reads the PDF content**
+
+| # | Transaction Name | Method | Endpoint | Correlation needed |
+|---|---|---|---|---|
+| 1 | `T01_Login_Student` | POST | `/api/auth/login` | Extract `token` cookie |
+| 2 | `T02_GetMe` | GET | `/api/auth/me` | Extract `id` |
+| 3 | `T03_GetMyCourses` | GET | `/api/courses` | Extract first `courseId` |
+| 4 | `T04_GetCourseLessons` | GET | `/api/courses/{courseId}/lessons` | Extract `contentId` from a content item where `type == "pdf"` |
+| 5 | `T05_GetContentDetail` | GET | `/api/lessons/content/{contentId}` | Correlate `contentId` from T04; extract `url` from response |
+| 6 | `T06_DownloadPDF` | GET | `/uploads/{filename}` | Correlate full URL from T05; this is a static file download — measure response time and bytes received |
+
+**Validations:**
+- T03 (upload): HTTP 200 + response contains `"url"` field ending in `.pdf`
+- T06 (update lesson): HTTP 200 + response contains `"message":"Lesson updated"`
+- T05 (content detail): HTTP 200 + `"type"` equals `"pdf"` and `"url"` is present
+- T06 (download): HTTP 200 + `Content-Type` is `application/pdf` + `Content-Length` > 0
+
+**Test data required:**
+
+| Parameter | Source | Details |
+|---|---|---|
+| `admin_email` | CSV parameter file | Pool of 3-5 admin accounts (upload is admin-only) |
+| `admin_password` | CSV parameter file | Corresponding passwords |
+| `student_email` | CSV parameter file | Pool of 50+ student accounts enrolled in courses with PDF content |
+| `student_password` | CSV parameter file | Corresponding passwords |
+| `pdf_file` | Local test files | 3 tiers of pre-generated PDF files: **small** (~500 KB, typical handout), **medium** (~5 MB, problem set with diagrams), **large** (~50 MB, full textbook chapter). Parameterize the file path in VuGen to cycle through sizes. |
+
+**Pre-conditions:**
+- Admin users must own at least one course with at least one lesson.
+- For Part B, courses must already contain at least one lesson with a `pdf`-type content item (either pre-seeded or created by Part A).
+- The `backend/uploads/` directory must be writable and have sufficient disk space for concurrent uploads.
+- If running Part A at scale, monitor disk space — 50 concurrent uploads of 50 MB files = ~2.5 GB written in a single ramp.
+
+**Key metrics to watch:**
+- **T03_UploadPDF**: Response time will be dominated by file size and disk I/O — set a higher timeout (e.g., 120s for large files) and track throughput (MB/s) rather than just response time.
+- **T06_DownloadPDF**: Measure bytes/second per VUser. Under concurrency, watch for TCP connection queuing and static-file serving bottlenecks.
+- **Server-side**: Monitor disk I/O utilization, memory usage (multer disk storage should not spike RAM, but verify), and network bandwidth saturation.
+
+---
+
 ## Summary for Controller Execution
 
 | Scenario | VUser % | Think Time | Pacing | Unique data? |
 |---|---|---|---|---|
-| 1 - Student Navigation | ~70% | 3-5s between transactions | Random | No — students can re-read courses |
-| 2 - Student Quiz | ~20% | 5-10s (simulates reading question) | Sequential | **Yes** — unique user per VUser, or clean QuizAttempt between iterations |
+| 1 - Student Navigation | ~60% | 3-5s between transactions | Random | No — students can re-read courses |
+| 2 - Student Quiz | ~15% | 5-10s (simulates reading question) | Sequential | **Yes** — unique user per VUser, or clean QuizAttempt between iterations |
 | 3 - Admin Dashboard | ~10% | 3-5s | Random | No — reads are idempotent; only T07 creates data |
+| 4A - PDF Upload (Admin) | ~5% | 5-10s (simulates selecting file) | Sequential | **Yes** — each upload creates a new file on disk; use unique filenames per iteration to avoid collisions |
+| 4B - PDF Download (Student) | ~10% | 15-30s (simulates reading PDF) | Random | No — downloads are idempotent; multiple students can fetch the same PDF concurrently |
 
 The main correlations across all scenarios will be the `token` cookie (set by login, sent automatically on subsequent requests) and the dynamic MongoDB `_id` values extracted from JSON responses for courseId, lessonId, contentId, and quizId.
