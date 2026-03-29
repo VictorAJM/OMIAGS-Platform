@@ -29,7 +29,7 @@ app.use(
       "https://omiags.online",
       "https://www.omiags.online",
       "https://www.omiags.online",
-      "http://localhost:5173"
+      "http://localhost:5173",
     ],
     credentials: true,
   }),
